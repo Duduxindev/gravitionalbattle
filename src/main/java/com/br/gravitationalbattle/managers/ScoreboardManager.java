@@ -14,209 +14,198 @@ import org.bukkit.scoreboard.Scoreboard;
 
 import com.br.gravitationalbattle.GravitationalBattle;
 import com.br.gravitationalbattle.game.Game;
+import com.br.gravitationalbattle.game.GameState;
 
 public class ScoreboardManager {
-
     private final GravitationalBattle plugin;
-    private final org.bukkit.scoreboard.ScoreboardManager bukkitManager;
     private final Map<UUID, Scoreboard> playerScoreboards;
+    private final org.bukkit.scoreboard.ScoreboardManager bukkitScoreboardManager;
 
     public ScoreboardManager(GravitationalBattle plugin) {
         this.plugin = plugin;
-        this.bukkitManager = Bukkit.getScoreboardManager();
         this.playerScoreboards = new HashMap<>();
+        this.bukkitScoreboardManager = Bukkit.getScoreboardManager();
     }
 
-    public void setLobbyScoreboard(Player player) {
-        Scoreboard board = bukkitManager.getNewScoreboard();
-        Objective obj = board.registerNewObjective("lobby", "dummy", ChatColor.GOLD + "Gravitational Battle");
-        obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-
-        // Get player stats
-        int wins = plugin.getStatsManager().getPlayerWins(player);
-        int kills = plugin.getStatsManager().getPlayerKills(player);
-        int deaths = plugin.getStatsManager().getPlayerDeaths(player);
-        int games = plugin.getStatsManager().getPlayerGamesPlayed(player);
-
-        // Calculate KDR
-        double kdr = (deaths > 0) ? (double) kills / deaths : kills;
-        String formattedKdr = String.format("%.2f", kdr);
-
-        // Set scores
-        int line = 12;
-        setScore(obj, "&r ", line--);
-        setScore(obj, "&eJogador: &f" + player.getName(), line--);
-        setScore(obj, "&r  ", line--);
-        setScore(obj, "&eVitórias: &f" + wins, line--);
-        setScore(obj, "&eEliminações: &f" + kills, line--);
-        setScore(obj, "&eMortes: &f" + deaths, line--);
-        setScore(obj, "&eK/D: &f" + formattedKdr, line--);
-        setScore(obj, "&ePartidas: &f" + games, line--);
-        setScore(obj, "&r   ", line--);
-        setScore(obj, "&eJogos ativos: &f" + plugin.getArenaManager().getActiveGames().size(), line--);
-        setScore(obj, "&r    ", line--);
-        setScore(obj, "&6play.servidor.com", line);
+    /**
+     * Cria um novo scoreboard para um jogador
+     * @param player Jogador para criar o scoreboard
+     */
+    public void setScoreboard(Player player) {
+        Scoreboard board = bukkitScoreboardManager.getNewScoreboard();
+        Objective objective = board.registerNewObjective("gbboard", "dummy",
+                ChatColor.GOLD + "" + ChatColor.BOLD + "Gravitational Battle");
+        objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         player.setScoreboard(board);
         playerScoreboards.put(player.getUniqueId(), board);
+
+        // Atualiza o scoreboard com informações iniciais
+        updateScoreboard(player);
     }
 
-    public void setWaitingScoreboard(Player player, Game game) {
-        Scoreboard board = bukkitManager.getNewScoreboard();
-        Objective obj = board.registerNewObjective("waiting", "dummy", ChatColor.GOLD + "Gravitational Battle");
-        obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-
-        int line = 12;
-        setScore(obj, "&r ", line--);
-        setScore(obj, "&eArena: &f" + game.getArena().getDisplayName(), line--);
-        setScore(obj, "&eEstado: &fEsperando", line--);
-        setScore(obj, "&r  ", line--);
-        setScore(obj, "&eJogadores: &f" + game.getPlayers().size() + "/" + plugin.getConfigManager().getMaxPlayers(), line--);
-        setScore(obj, "&r   ", line--);
-
-        if (game.getState() == com.br.gravitationalbattle.game.GameState.COUNTDOWN) {
-            setScore(obj, "&eIniciando em: &f" + game.getCountdown() + "s", line--);
-            setScore(obj, "&r    ", line--);
-        }
-
-        setScore(obj, "&fMín. jogadores: &e" + plugin.getConfigManager().getMinPlayers(), line--);
-        setScore(obj, "&r     ", line--);
-        setScore(obj, "&6play.servidor.com", line);
-
-        player.setScoreboard(board);
-        playerScoreboards.put(player.getUniqueId(), board);
-    }
-
-    public void updateWaitingScoreboard(Player player, Game game) {
-        Scoreboard board = player.getScoreboard();
-
-        if (board == null || board.getObjective("waiting") == null) {
-            setWaitingScoreboard(player, game);
+    /**
+     * Atualiza o scoreboard de um jogador
+     * @param player Jogador para atualizar o scoreboard
+     */
+    public void updateScoreboard(Player player) {
+        if (!playerScoreboards.containsKey(player.getUniqueId())) {
+            setScoreboard(player);
             return;
         }
 
-        Objective obj = board.getObjective("waiting");
+        Scoreboard board = playerScoreboards.get(player.getUniqueId());
+        Objective objective = board.getObjective("gbboard");
 
-        // Update player count
-        board.resetScores(ChatColor.translateAlternateColorCodes('&',
-                "&eJogadores: &f" + (game.getPlayers().size() - 1) + "/" + plugin.getConfigManager().getMaxPlayers()));
-        setScore(obj, "&eJogadores: &f" + game.getPlayers().size() + "/" + plugin.getConfigManager().getMaxPlayers(), 7);
-
-        // Update countdown if in countdown state
-        if (game.getState() == com.br.gravitationalbattle.game.GameState.COUNTDOWN) {
-            // Remove all possible countdowns
-            for (int i = 0; i <= 60; i++) {
-                board.resetScores(ChatColor.translateAlternateColorCodes('&', "&eIniciando em: &f" + i + "s"));
-            }
-            setScore(obj, "&eIniciando em: &f" + game.getCountdown() + "s", 5);
-        }
-    }
-
-    public void setGameScoreboard(Player player, Game game) {
-        Scoreboard board = bukkitManager.getNewScoreboard();
-        Objective obj = board.registerNewObjective("game", "dummy", ChatColor.GOLD + "Gravitational Battle");
-        obj.setDisplaySlot(DisplaySlot.SIDEBAR);
-
-        // Format time remaining
-        int timeRemaining = game.getGameTime();
-        int minutes = timeRemaining / 60;
-        int seconds = timeRemaining % 60;
-        String timeStr = String.format("%02d:%02d", minutes, seconds);
-
-        // Get gravity direction name
-        String gravityDirection;
-        switch (game.getGravityDirection()) {
-            case 0: gravityDirection = "Normal"; break;
-            case 1: gravityDirection = "Invertida"; break;
-            case 2: gravityDirection = "Alta"; break;
-            case 3: gravityDirection = "Baixa"; break;
-            default: gravityDirection = "Normal"; break;
-        }
-
-        int line = 12;
-        setScore(obj, "&r ", line--);
-        setScore(obj, "&eArena: &f" + game.getArena().getDisplayName(), line--);
-        setScore(obj, "&eTempo: &f" + timeStr, line--);
-        setScore(obj, "&r  ", line--);
-        setScore(obj, "&eJogadores vivos: &f" + game.getAliveCount(), line--);
-        setScore(obj, "&eSuas eliminações: &f" + game.getKills(player.getUniqueId()), line--);
-        setScore(obj, "&r   ", line--);
-        setScore(obj, "&eGravidade: &f" + gravityDirection, line--);
-        setScore(obj, "&ePróx. mudança: &f" + game.getTimeUntilGravityChange() + "s", line--);
-        setScore(obj, "&r    ", line--);
-        setScore(obj, "&6play.servidor.com", line);
-
-        player.setScoreboard(board);
-        playerScoreboards.put(player.getUniqueId(), board);
-    }
-
-    public void updateGameScoreboard(Player player, Game game) {
-        Scoreboard board = player.getScoreboard();
-
-        if (board == null || board.getObjective("game") == null) {
-            setGameScoreboard(player, game);
+        if (objective == null) {
+            // Se o objetivo não existir por algum motivo, cria um novo
+            setScoreboard(player);
             return;
         }
 
-        Objective obj = board.getObjective("game");
+        // Limpa o scoreboard atual
+        for (String entry : board.getEntries()) {
+            board.resetScores(entry);
+        }
 
-        // Update time remaining
-        int timeRemaining = game.getGameTime();
-        int minutes = timeRemaining / 60;
-        int seconds = timeRemaining % 60;
-        String timeStr = String.format("%02d:%02d", minutes, seconds);
+        // Verifica se o jogador está em um jogo
+        Game game = null;
+        try {
+            game = plugin.getGameManager().getPlayerGame(player);
+        } catch (Exception e) {
+            // Ignora erros se o método não existir ou lançar exceção
+        }
 
-        // Clear all possible times
-        for (int m = 0; m < 60; m++) {
-            for (int s = 0; s < 60; s++) {
-                String format = String.format("%02d:%02d", m, s);
-                board.resetScores(ChatColor.translateAlternateColorCodes('&', "&eTempo: &f" + format));
+        if (game == null) {
+            // Jogador não está em um jogo, mostra o scoreboard do lobby
+            setLobbyScoreboard(player, objective);
+        } else {
+            // Jogador está em um jogo, mostra o scoreboard do jogo
+            setGameScoreboard(player, objective, game);
+        }
+    }
+
+    /**
+     * Define o scoreboard do lobby para um jogador
+     * @param player Jogador
+     * @param objective Objetivo do scoreboard
+     */
+    private void setLobbyScoreboard(Player player, Objective objective) {
+        int line = 10;
+
+        setScore(objective, "&r", line--);
+        setScore(objective, "&e&lSEU PERFIL", line--);
+        setScore(objective, "&fNome: &a" + player.getName(), line--);
+
+        // Estatísticas (padrão zero, pode ser atualizado depois)
+        int kills = 0;
+        int deaths = 0;
+        int wins = 0;
+
+        // Tenta obter estatísticas do StatsManager, mas não falha se der erro
+        if (plugin.getStatsManager() != null) {
+            try {
+                kills = plugin.getStatsManager().getKills(player.getUniqueId());
+                deaths = plugin.getStatsManager().getDeaths(player.getUniqueId());
+                wins = plugin.getStatsManager().getWins(player.getUniqueId());
+            } catch (Exception e) {
+                // Ignora erros
             }
         }
 
-        setScore(obj, "&eTempo: &f" + timeStr, 9);
+        setScore(objective, "&fVitórias: &a" + wins, line--);
+        setScore(objective, "&fAbates: &a" + kills, line--);
+        setScore(objective, "&fMortes: &c" + deaths, line--);
+        setScore(objective, "&r&r", line--);
+        setScore(objective, "&e&lSERVIDOR", line--);
+        setScore(objective, "&fJogadores: &a" + Bukkit.getOnlinePlayers().size(), line--);
 
-        // Update player count
-        board.resetScores(ChatColor.translateAlternateColorCodes('&', "&eJogadores vivos: &f" + (game.getAliveCount() + 1)));
-        board.resetScores(ChatColor.translateAlternateColorCodes('&', "&eJogadores vivos: &f" + (game.getAliveCount() - 1)));
-        setScore(obj, "&eJogadores vivos: &f" + game.getAliveCount(), 7);
-
-        // Update kills
-        int kills = game.getKills(player.getUniqueId());
-        board.resetScores(ChatColor.translateAlternateColorCodes('&', "&eSuas eliminações: &f" + (kills - 1)));
-        board.resetScores(ChatColor.translateAlternateColorCodes('&', "&eSuas eliminações: &f" + (kills + 1)));
-        setScore(obj, "&eSuas eliminações: &f" + kills, 6);
-
-        // Update gravity direction
-        String gravityDirection;
-        switch (game.getGravityDirection()) {
-            case 0: gravityDirection = "Normal"; break;
-            case 1: gravityDirection = "Invertida"; break;
-            case 2: gravityDirection = "Alta"; break;
-            case 3: gravityDirection = "Baixa"; break;
-            default: gravityDirection = "Normal"; break;
+        int arenaCount = 0;
+        try {
+            arenaCount = plugin.getArenaManager().getAllArenas().size();
+        } catch (Exception e) {
+            // Ignora erros
         }
 
-        board.resetScores(ChatColor.translateAlternateColorCodes('&', "&eGravidade: &fNormal"));
-        board.resetScores(ChatColor.translateAlternateColorCodes('&', "&eGravidade: &fInvertida"));
-        board.resetScores(ChatColor.translateAlternateColorCodes('&', "&eGravidade: &fAlta"));
-        board.resetScores(ChatColor.translateAlternateColorCodes('&', "&eGravidade: &fBaixa"));
-        setScore(obj, "&eGravidade: &f" + gravityDirection, 4);
+        setScore(objective, "&fArenas: &a" + arenaCount, line--);
+        setScore(objective, "&r&r&r", line--);
+        setScore(objective, "&7gravitationalbattle.com.br", line);
+    }
 
-        // Update next gravity change
-        for (int i = 0; i <= 60; i++) {
-            board.resetScores(ChatColor.translateAlternateColorCodes('&', "&ePróx. mudança: &f" + i + "s"));
+    /**
+     * Define o scoreboard do jogo para um jogador
+     * @param player Jogador
+     * @param objective Objetivo do scoreboard
+     * @param game Jogo
+     */
+    private void setGameScoreboard(Player player, Objective objective, Game game) {
+        int line = 10;
+
+        setScore(objective, "&r", line--);
+        setScore(objective, "&e&lARENA", line--);
+
+        String displayName = "Desconhecida";
+        try {
+            displayName = game.getArena().getDisplayName();
+        } catch (Exception e) {
+            // Ignora erros
         }
-        setScore(obj, "&ePróx. mudança: &f" + game.getTimeUntilGravityChange() + "s", 3);
+
+        setScore(objective, "&f" + displayName, line--);
+        setScore(objective, "&r&r", line--);
+        setScore(objective, "&e&lESTADO", line--);
+
+        GameState state = GameState.WAITING;
+        try {
+            state = game.getState();
+        } catch (Exception e) {
+            // Ignora erros
+        }
+
+        String stateColor = "&c";
+        if (state == GameState.WAITING) {
+            stateColor = "&a";
+        } else if (state == GameState.STARTING) {
+            stateColor = "&e";
+        } else if (state == GameState.INGAME) {
+            stateColor = "&c";
+        }
+
+        setScore(objective, stateColor + state.toString(), line--);
+        setScore(objective, "&r&r&r", line--);
+        setScore(objective, "&e&lJOGADORES", line--);
+
+        int playerCount = 0;
+        int maxPlayers = 0;
+        try {
+            playerCount = game.getPlayerCount();
+            maxPlayers = game.getArena().getMaxPlayers();
+        } catch (Exception e) {
+            // Ignora erros
+        }
+
+        setScore(objective, "&f" + playerCount + "/" + maxPlayers, line--);
+        setScore(objective, "&r&r&r&r", line--);
+        setScore(objective, "&7gravitationalbattle.com.br", line);
     }
 
-    private void setScore(Objective objective, String text, int score) {
-        Score scoreObj = objective.getScore(ChatColor.translateAlternateColorCodes('&', text));
-        scoreObj.setScore(score);
+    /**
+     * Define uma linha no scoreboard
+     * @param objective Objetivo do scoreboard
+     * @param text Texto da linha
+     * @param line Número da linha
+     */
+    private void setScore(Objective objective, String text, int line) {
+        Score score = objective.getScore(ChatColor.translateAlternateColorCodes('&', text));
+        score.setScore(line);
     }
 
-    // Call this on plugin disable to clean up
-    public void cleanup() {
-        playerScoreboards.clear();
+    /**
+     * Remove o scoreboard de um jogador
+     * @param player Jogador para remover o scoreboard
+     */
+    public void removeScoreboard(Player player) {
+        playerScoreboards.remove(player.getUniqueId());
+        player.setScoreboard(bukkitScoreboardManager.getNewScoreboard());
     }
 }

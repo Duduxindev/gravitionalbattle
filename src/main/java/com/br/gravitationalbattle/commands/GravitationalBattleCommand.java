@@ -48,6 +48,36 @@ public class GravitationalBattleCommand implements CommandExecutor, TabCompleter
                 MessageUtil.sendMessage(sender, "&aConfigurações recarregadas com sucesso!");
                 break;
 
+            case "admin":
+                if (!sender.hasPermission("gravitationalbattle.admin")) {
+                    MessageUtil.sendMessage(sender, "&cVocê não tem permissão para usar este comando.");
+                    return true;
+                }
+
+                if (args.length < 2) {
+                    MessageUtil.sendMessage(sender, "&cUso: /gb admin [forcestart|forceend|reload]");
+                    return true;
+                }
+
+                AdminCommands adminCmds = new AdminCommands(plugin);
+                String adminSubCmd = args[1].toLowerCase();
+                String[] subArgs = new String[args.length - 2];
+                System.arraycopy(args, 2, subArgs, 0, args.length - 2);
+
+                switch (adminSubCmd) {
+                    case "forcestart":
+                        return adminCmds.forceStart(sender, subArgs);
+                    case "forceend":
+                        return adminCmds.forceEnd(sender, subArgs);
+                    case "reload":
+                        return adminCmds.reloadConfig(sender);
+                    case "setlobby":
+                        return adminCmds.setMainLobby(sender);
+                    default:
+                        MessageUtil.sendMessage(sender, "&cComando administrativo desconhecido.");
+                        return false;
+                }
+
             default:
                 MessageUtil.sendMessage(sender, "&cComando desconhecido. Use &e/gb help &cpara ver a lista de comandos.");
                 break;
@@ -81,8 +111,24 @@ public class GravitationalBattleCommand implements CommandExecutor, TabCompleter
             completions.add("help");
             if (sender.hasPermission("gravitationalbattle.admin")) {
                 completions.add("reload");
+                completions.add("admin");
             }
             return filterCompletions(completions, args[0]);
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("admin")) {
+            if (sender.hasPermission("gravitationalbattle.admin")) {
+                completions.add("forcestart");
+                completions.add("forceend");
+                completions.add("reload");
+                completions.add("setlobby");
+            }
+            return filterCompletions(completions, args[1]);
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("admin") &&
+                (args[1].equalsIgnoreCase("forcestart") || args[1].equalsIgnoreCase("forceend"))) {
+            // Adicionar nomes das arenas disponíveis
+            for (String arena : plugin.getArenaManager().getArenaNames()) {
+                completions.add(arena);
+            }
+            return filterCompletions(completions, args[2]);
         }
 
         return completions;

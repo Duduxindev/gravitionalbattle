@@ -10,8 +10,9 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import com.br.gravitationalbattle.GravitationalBattle;
-import com.br.gravitationalbattle.game.Arena;
+import com.br.gravitationalbattle.game.Arena; // IMPORTAÇÃO CORRIGIDA
 import com.br.gravitationalbattle.utils.MessageUtil;
+
 
 public class ArenaCommand implements CommandExecutor, TabCompleter {
 
@@ -74,11 +75,12 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
                 }
                 break;
 
+// Dentro do case "list":
             case "list":
                 MessageUtil.sendMessage(player, "&6===== &eArenas Disponíveis &6=====");
                 for (Arena arena : plugin.getArenaManager().getAllArenas()) {
-                    String status = arena.getState().toString();
-                    String statusColor = arena.isAvailable() ? "&a" : "&c";
+                    String status = arena.isEnabled() ? "DISPONÍVEL" : "MANUTENÇÃO";
+                    String statusColor = arena.isEnabled() ? "&a" : "&c";
                     MessageUtil.sendMessage(player, "&e" + arena.getName() + " &7- &f" + arena.getDisplayName()
                             + " &7(" + statusColor + status + "&7) &7- &fSpawns: " + arena.getSpawnPointCount());
                 }
@@ -91,6 +93,9 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
                 }
                 String arenaName = args[1];
                 boolean added = plugin.getArenaManager().addSpawnPoint(arenaName, player);
+                if (added) {
+                    MessageUtil.sendMessage(player, "&aPonto de spawn adicionado com sucesso para a arena &e" + arenaName + "&a!");
+                }
                 break;
 
             case "tp":
@@ -104,20 +109,15 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
 
-                org.bukkit.World world = org.bukkit.Bukkit.getWorld(arenaToTp.getWorldUUID());
-                if (world == null) {
-                    MessageUtil.sendMessage(player, "&cO mundo desta arena não existe mais.");
-                    return true;
-                }
-
-                player.teleport(world.getSpawnLocation());
-                MessageUtil.sendMessage(player, "&aTeleportado para a arena &e" + arenaToTp.getDisplayName() + "&a.");
+                player.teleport(arenaToTp.getLobbyLocation());
+                MessageUtil.sendMessage(player, "&aTeleportado para a arena &e" + arenaToTp.getName() + "&a.");
                 break;
 
+// Dentro do case "setstate":
             case "setstate":
                 if (args.length < 3) {
                     MessageUtil.sendMessage(player, "&cUso: /arena setstate <nome> <estado>");
-                    MessageUtil.sendMessage(player, "&cEstados válidos: AVAILABLE, MAINTENANCE");
+                    MessageUtil.sendMessage(player, "&cEstados válidos: ENABLED, DISABLED");
                     return true;
                 }
                 Arena arenaToSetState = plugin.getArenaManager().getArena(args[1]);
@@ -126,18 +126,15 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
 
-                try {
-                    com.br.gravitationalbattle.game.GameState state =
-                            com.br.gravitationalbattle.game.GameState.valueOf(args[2].toUpperCase());
-                    if (state == com.br.gravitationalbattle.game.GameState.AVAILABLE ||
-                            state == com.br.gravitationalbattle.game.GameState.MAINTENANCE) {
-                        arenaToSetState.setState(state);
-                        MessageUtil.sendMessage(player, "&aEstado da arena alterado para &e" + state + "&a.");
-                    } else {
-                        MessageUtil.sendMessage(player, "&cEstado inválido. Use AVAILABLE ou MAINTENANCE.");
-                    }
-                } catch (IllegalArgumentException e) {
-                    MessageUtil.sendMessage(player, "&cEstado inválido. Use AVAILABLE ou MAINTENANCE.");
+                String state = args[2].toUpperCase();
+                if (state.equals("ENABLED")) {
+                    arenaToSetState.setEnabled(true);
+                    MessageUtil.sendMessage(player, "&aEstado da arena alterado para &eENABLED&a.");
+                } else if (state.equals("DISABLED")) {
+                    arenaToSetState.setEnabled(false);
+                    MessageUtil.sendMessage(player, "&aEstado da arena alterado para &cDISABLED&a.");
+                } else {
+                    MessageUtil.sendMessage(player, "&cEstado inválido. Use ENABLED ou DISABLED.");
                 }
                 break;
 
@@ -180,8 +177,8 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
             }
         } else if (args.length == 3) {
             if (args[0].equalsIgnoreCase("setstate")) {
-                completions.add("AVAILABLE");
-                completions.add("MAINTENANCE");
+                completions.add("ENABLED");
+                completions.add("DISABLED");
                 return filterCompletions(completions, args[2]);
             }
         }

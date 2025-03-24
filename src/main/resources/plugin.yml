@@ -2,70 +2,85 @@ name: GravitationalBattle
 version: 1.0.0
 main: com.br.gravitationalbattle.GravitationalBattle
 api-version: 1.16
-depend: [Multiverse-Core]
+description: Um minigame de batalha com gravidade alterada para Bukkit/Spigot
 author: Duduxindev
-description: Um minigame de batalha com gravidade alterada
+depend: [Multiverse-Core]
 
 commands:
   gravitationalbattle:
     description: Comando principal do plugin
-    usage: /<command> [reload|help]
     aliases: [gb]
-    permission: gravitationalbattle.use
-
+    usage: /gb [help|reload]
   arena:
-    description: Gerencia arenas do minigame
-    usage: /<command> [create|delete|list|addspawn|tp|setstate]
+    description: Gerencia as arenas do jogo
+    usage: /arena [create|delete|list|addspawn|tp|setstate]
     permission: gravitationalbattle.admin
-
   join:
-    description: Entra em um jogo
-    usage: /<command> [arena]
+    description: Entra em uma arena
+    usage: /join [arena]
     permission: gravitationalbattle.join
-
   leave:
-    description: Sai do jogo atual
-    usage: /<command>
-    permission: gravitationalbattle.join
-
+    description: Sai da arena atual
+    usage: /leave
+    permission: gravitationalbattle.leave
   setlobby:
-    description: Define o lobby principal
-    usage: /<command>
-    permission: gravitationalbattle.admin
-
+    description: Define o lobby principal do plugin
+    usage: /setlobby
+    permission: gravitationalbattle.admin.setlobby
   spectate:
-    description: Assiste a um jogo
-    usage: /<command> <arena|jogador>
-    aliases: [spec]
+    description: Assiste a uma partida
+    usage: /spectate <arena|jogador>
     permission: gravitationalbattle.spectate
-
   stats:
-    description: Mostra estatísticas de jogadores
-    usage: /<command> [jogador]
+    description: Mostra estatísticas do jogador
+    usage: /stats [jogador]
     permission: gravitationalbattle.stats
+  admin:
+    description: Comandos administrativos
+    usage: /admin [forcestart|forceend|reload]
+    permission: gravitationalbattle.admin
 
 permissions:
-  gravitationalbattle.use:
-    description: Permite usar os comandos básicos do plugin
-    default: true
-
+  gravitationalbattle.admin:
+    description: Acesso a todos os comandos de administração
+    default: op
+  gravitationalbattle.admin.forcestart:
+    description: Permite iniciar jogos à força
+    default: op
+    children:
+      gravitationalbattle.admin: true
+  gravitationalbattle.admin.forceend:
+    description: Permite terminar jogos à força
+    default: op
+    children:
+      gravitationalbattle.admin: true
+  gravitationalbattle.admin.reload:
+    description: Permite recarregar configurações
+    default: op
+    children:
+      gravitationalbattle.admin: true
+  gravitationalbattle.admin.setlobby:
+    description: Permite definir o lobby principal
+    default: op
+    children:
+      gravitationalbattle.admin: true
   gravitationalbattle.join:
-    description: Permite entrar e sair dos jogos
+    description: Permite entrar nos jogos
     default: true
-
+  gravitationalbattle.leave:
+    description: Permite sair dos jogos
+    default: true
   gravitationalbattle.spectate:
     description: Permite assistir jogos
     default: true
-
   gravitationalbattle.stats:
     description: Permite ver estatísticas
     default: true
-
-  gravitationalbattle.admin:
-    description: Acesso administrativo ao plugin
+  gravitationalbattle.*:
+    description: Permite todos os comandos
     default: op
     children:
-      gravitationalbattle.use: true
+      gravitationalbattle.admin: true
       gravitationalbattle.join: true
+      gravitationalbattle.leave: true
       gravitationalbattle.spectate: true
-      gravitationalbattle.stats: true

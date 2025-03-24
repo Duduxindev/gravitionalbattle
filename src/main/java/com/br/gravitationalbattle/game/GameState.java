@@ -1,11 +1,16 @@
 package com.br.gravitationalbattle.game;
 
+/**
+ * Estados possíveis para um jogo ou arena
+ */
 public enum GameState {
-    AVAILABLE,    // Arena está disponível para uso
-    IN_USE,       // Arena está sendo usada por um jogo
-    MAINTENANCE,  // Arena está em manutenção
-    WAITING,      // Jogo está esperando por jogadores
-    COUNTDOWN,    // Contagem regressiva para início do jogo
+    // Estados do jogo
+    WAITING,      // Aguardando jogadores suficientes
+    STARTING,     // Contagem regressiva para início
     INGAME,       // Jogo em andamento
-    ENDING        // Jogo terminando
+    ENDING,       // Jogo terminado, aguardando reset
+
+    // Estados da arena
+    AVAILABLE,    // Arena disponível para jogos
+    MAINTENANCE   // Arena em manutenção
 }

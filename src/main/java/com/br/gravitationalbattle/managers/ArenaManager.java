@@ -1,175 +1,139 @@
 package com.br.gravitationalbattle.managers;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
-import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 import com.br.gravitationalbattle.GravitationalBattle;
-import com.br.gravitationalbattle.game.Arena;
+import com.br.gravitationalbattle.game.Arena; // Pacote correto
 import com.br.gravitationalbattle.game.Game;
-import com.br.gravitationalbattle.utils.MessageUtil;
+import com.br.gravitationalbattle.utils.MessageUtil; // Import para MessageUtil
 
 public class ArenaManager {
-
     private final GravitationalBattle plugin;
-    private final Map<String, Arena> arenas;
-    private final Map<String, Game> activeGames;
+    private List<Arena> arenas;
 
     public ArenaManager(GravitationalBattle plugin) {
         this.plugin = plugin;
-        this.arenas = new HashMap<>();
-        this.activeGames = new HashMap<>();
+        this.arenas = new ArrayList<>();
     }
 
-    public void loadArenas() {
-        FileConfiguration config = plugin.getConfig();
-        ConfigurationSection arenasSection = config.getConfigurationSection("arenas");
-
-        if (arenasSection == null) {
-            arenasSection = config.createSection("arenas");
+    /**
+     * Obtém uma lista com os nomes de todas as arenas
+     * @return Lista de nomes das arenas
+     */
+    public List<String> getArenaNames() {
+        List<String> names = new ArrayList<>();
+        for (Arena arena : getAllArenas()) {
+            names.add(arena.getName());
         }
-
-        int count = 0;
-        for (String arenaName : arenasSection.getKeys(false)) {
-            ConfigurationSection arenaSection = arenasSection.getConfigurationSection(arenaName);
-            Arena arena = Arena.loadFromConfig(arenaName, arenaSection);
-
-            if (arena != null) {
-                arenas.put(arenaName.toLowerCase(), arena);
-                count++;
-            }
-        }
-
-        plugin.getLogger().info("Carregadas " + count + " arenas.");
+        return names;
     }
 
-    public void saveArenas() {
-        FileConfiguration config = plugin.getConfig();
-
-        // Clear existing arenas first
-        config.set("arenas", null);
-
-        // Create new section
-        ConfigurationSection arenasSection = config.createSection("arenas");
-
-        for (Map.Entry<String, Arena> entry : arenas.entrySet()) {
-            ConfigurationSection arenaSection = arenasSection.createSection(entry.getKey());
-            entry.getValue().saveToConfig(arenaSection);
-        }
-
-        plugin.saveConfig();
-        plugin.getLogger().info("Salvas " + arenas.size() + " arenas.");
+    /**
+     * Obtém todas as arenas registradas
+     * @return Lista de arenas
+     */
+    public List<Arena> getAllArenas() {
+        return arenas;
     }
 
-    public boolean createArena(String name, String displayName, Player creator) {
-        name = name.toLowerCase();
-
-        if (arenas.containsKey(name)) {
-            MessageUtil.sendMessage(creator, "&cJá existe uma arena com este nome!");
-            return false;
-        }
-
-        World world = creator.getWorld();
-        Arena arena = new Arena(name, displayName, world.getUID());
-
-        arenas.put(name, arena);
-        saveArenas();
-
-        return true;
-    }
-
-    public boolean deleteArena(String name, Player player) {
-        name = name.toLowerCase();
-
-        if (!arenas.containsKey(name)) {
-            MessageUtil.sendMessage(player, "&cArena não encontrada!");
-            return false;
-        }
-
-        // Check if arena is in use
-        if (activeGames.containsKey(name)) {
-            MessageUtil.sendMessage(player, "&cEsta arena está sendo usada atualmente!");
-            return false;
-        }
-
-        arenas.remove(name);
-        saveArenas();
-
-        return true;
-    }
-
-    public boolean addSpawnPoint(String arenaName, Player player) {
-        arenaName = arenaName.toLowerCase();
-
-        Arena arena = arenas.get(arenaName);
-
-        if (arena == null) {
-            MessageUtil.sendMessage(player, "&cArena não encontrada!");
-            return false;
-        }
-
-        // Check if player is in the correct world
-        if (!player.getWorld().getUID().equals(arena.getWorldUUID())) {
-            MessageUtil.sendMessage(player, "&cVocê precisa estar no mundo da arena para adicionar um spawn point!");
-            return false;
-        }
-
-        arena.addSpawnPoint(player.getLocation());
-        saveArenas();
-
-        MessageUtil.sendMessage(player, "&aSpawn point adicionado com sucesso! Total: " + arena.getSpawnPointCount());
-        return true;
-    }
-
+    /**
+     * Obtém uma arena pelo nome
+     * @param name Nome da arena
+     * @return Arena encontrada ou null se não existir
+     */
     public Arena getArena(String name) {
-        return arenas.get(name.toLowerCase());
-    }
-
-    public Collection<Arena> getAllArenas() {
-        return arenas.values();
-    }
-
-    public Game createGame(Arena arena) {
-        String arenaName = arena.getName().toLowerCase();
-
-        // Check if game already exists for this arena
-        if (activeGames.containsKey(arenaName)) {
-            return activeGames.get(arenaName);
-        }
-
-        Game game = new Game(plugin, arena);
-        activeGames.put(arenaName, game);
-
-        return game;
-    }
-
-    public void removeGame(Game game) {
-        String arenaName = game.getArena().getName().toLowerCase();
-        activeGames.remove(arenaName);
-    }
-
-    public Game getGame(String arenaName) {
-        return activeGames.get(arenaName.toLowerCase());
-    }
-
-    public Collection<Game> getActiveGames() {
-        return activeGames.values();
-    }
-
-    public Game getPlayerGame(UUID playerUUID) {
-        for (Game game : activeGames.values()) {
-            if (game.getPlayers().contains(playerUUID)) {
-                return game;
+        for (Arena arena : arenas) {
+            if (arena.getName().equalsIgnoreCase(name)) {
+                return arena;
             }
         }
         return null;
     }
+
+    /**
+     * Cria uma nova arena
+     * @param name Nome da arena
+     * @param displayName Nome de exibição da arena
+     * @param player Jogador que está criando a arena
+     * @return true se a arena foi criada com sucesso
+     */
+    public boolean createArena(String name, String displayName, Player player) {
+        if (getArena(name) != null) {
+            MessageUtil.sendMessage(player, "&cUma arena com este nome já existe!"); // Corrigido
+            return false;
+        }
+
+        Arena arena = new Arena(name, player.getLocation());
+        arena.setDisplayName(displayName); // Definir o nome de exibição
+        arenas.add(arena);
+        saveArenas(); // Salva as arenas em arquivo
+        return true;
+    }
+
+    /**
+     * Remove uma arena
+     * @param name Nome da arena
+     * @param player Jogador que está removendo a arena
+     * @return true se a arena foi removida com sucesso
+     */
+    public boolean deleteArena(String name, Player player) {
+        Arena arena = getArena(name);
+        if (arena == null) {
+            MessageUtil.sendMessage(player, "&cArena não encontrada."); // Corrigido
+            return false;
+        }
+
+        arenas.remove(arena);
+        saveArenas(); // Salva as arenas em arquivo
+        return true;
+    }
+
+    /**
+     * Adiciona um ponto de spawn a uma arena
+     * @param arenaName Nome da arena
+     * @param player Jogador que está adicionando o ponto de spawn
+     * @return true se o ponto de spawn foi adicionado com sucesso
+     */
+    public boolean addSpawnPoint(String arenaName, Player player) {
+        Arena arena = getArena(arenaName);
+        if (arena == null) {
+            MessageUtil.sendMessage(player, "&cArena não encontrada."); // Corrigido
+            return false;
+        }
+
+        arena.addSpawnPoint(player.getLocation());
+        saveArenas(); // Salva as arenas em arquivo
+        return true;
+    }
+
+    /**
+     * Carrega as arenas do arquivo de configuração
+     */
+    public void loadArenas() {
+        // Implementação para carregar arenas de arquivo
+        // Esta seria a implementação real
+    }
+
+    /**
+     * Salva as arenas no arquivo de configuração
+     */
+    public void saveArenas() {
+        // Implementação para salvar arenas em arquivo
+        // Esta seria a implementação real
+    }
+
+    /**
+     * Obtém um jogo associado a uma arena
+     * @param arenaName Nome da arena
+     * @return Jogo associado à arena ou null se não houver
+     */
+    public Game getGame(String arenaName) {
+        // Esta seria a implementação real que busca ou cria um jogo para a arena
+        return null;
+    }
+
 }

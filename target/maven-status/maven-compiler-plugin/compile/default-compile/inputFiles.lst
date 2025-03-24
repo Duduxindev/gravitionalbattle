@@ -1,28 +1,29 @@
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\PlayerCommands.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\AdminCommands.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\game\Arena.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\managers\ConfigManager.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\managers\GameManager.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\menus\MapSelectorMenu.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\menus\Menu.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\listeners\PlayerListener.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\managers\ScoreboardManager.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\game\Game.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\game\GameState.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\SetLobbyCommand.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\utils\MessageUtil.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\managers\ArenaManager.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\managers\NPCManager.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\GravitationalBattle.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\LeaveCommand.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\ArenaCommand.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\listeners\GameListener.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\GravitationalBattleCommand.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\JoinCommand.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\game\SpawnPoint.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\SpectateCommand.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\StatsCommand.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\managers\StatsManager.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\listeners\NPCListener.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\utils\LocationUtil.java
-C:\Users\UPF GAMES\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\ModeratorCommands.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\SetLobbyCommand.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\game\Game.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\game\Arena.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\AdminCommand.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\SpectateCommand.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\game\GameState.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\GravitationalBattle.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\listeners\GameListener.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\managers\StatsManager.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\PlayerCommands.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\menus\Menu.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\ModeratorCommands.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\managers\NPCManager.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\listeners\NPCListener.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\utils\LocationUtil.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\managers\ConfigManager.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\utils\MessageUtil.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\AdminCommands.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\LeaveCommand.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\listeners\PlayerListener.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\GravitationalBattleCommand.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\ArenaCommand.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\managers\GameManager.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\StatsCommand.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\commands\JoinCommand.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\managers\ScoreboardManager.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\menus\MapSelectorMenu.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\game\SpawnPoint.java
+C:\Users\PC\Downloads\GravitationalBattle\src\main\java\com\br\gravitationalbattle\managers\ArenaManager.java

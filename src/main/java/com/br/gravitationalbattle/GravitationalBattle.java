@@ -4,6 +4,7 @@ import com.br.gravitationalbattle.managers.*;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import com.br.gravitationalbattle.commands.AdminCommand;
 import com.br.gravitationalbattle.commands.ArenaCommand;
 import com.br.gravitationalbattle.commands.GravitationalBattleCommand;
 import com.br.gravitationalbattle.commands.JoinCommand;
@@ -61,6 +62,7 @@ public class GravitationalBattle extends JavaPlugin {
         getCommand("setlobby").setExecutor(new SetLobbyCommand(this));
         getCommand("spectate").setExecutor(new SpectateCommand(this));
         getCommand("stats").setExecutor(new StatsCommand(this));
+        getCommand("admin").setExecutor(new AdminCommand(this)); // Registrar o AdminCommand
 
         // Register listeners
         PluginManager pluginManager = getServer().getPluginManager();
