@@ -1,0 +1,34 @@
+# Configuração do GravitationalBattle
+
+# Localização do lobby (será preenchida quando definida pelo comando /setlobby)
+lobby-location: ""
+
+# Configurações do jogo
+game-settings:
+  min-players: 2
+  max-players: 8
+  start-countdown: 30
+  duration: 300
+
+# Recompensas (para integração com economia)
+rewards:
+  win: 100
+  kill: 25
+  participation: 10
+
+# Mensagens do plugin
+messages:
+  prefix: "&8[&6GB&8] &r"
+  player-joined: "%prefix% &e%player% &ajuntou-se ao jogo! &7(%current%/%max%)"
+  player-left: "%prefix% &e%player% &csaiu do jogo. &7(%current%/%max%)"
+  game-starting: "%prefix% &aO jogo começará em &e%time% &asegundos!"
+  countdown-cancelled: "%prefix% &cContagem regressiva cancelada. Aguardando mais jogadores..."
+  game-started: "%prefix% &a&lO jogo começou! Boa sorte!"
+  player-killed: "%prefix% &e%player% &7foi eliminado por &e%killer%&7!"
+  player-died: "%prefix% &e%player% &7foi eliminado!"
+  game-ended: "%prefix% &a&lFim de jogo! &e%winner% &avenceu!"
+  game-ended-no-winner: "%prefix% &a&lFim de jogo! &cNão houve vencedor!"
+  spectate-join: "%prefix% &7Você agora está assistindo à partida. Use /leave para sair."
+
+# Arenas (serão populadas automaticamente)
+arenas: {}
