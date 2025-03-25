@@ -1,156 +1,200 @@
 package com.br.gravitationalbattle.managers;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.File;
+import java.io.IOException;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 
 import com.br.gravitationalbattle.GravitationalBattle;
-import com.br.gravitationalbattle.utils.LocationUtil;
 
 public class ConfigManager {
 
     private final GravitationalBattle plugin;
+    private FileConfiguration config;
+    private File configFile;
     private Location lobbyLocation;
-    private Map<String, String> messages;
-    private Map<String, Integer> rewards;
-    private int minPlayers;
+    private int startCountdown;
+    private int gameTime;
     private int maxPlayers;
-    private int gameStartDelay;
-    private int gameDuration;
 
     public ConfigManager(GravitationalBattle plugin) {
         this.plugin = plugin;
-        this.messages = new HashMap<>();
-        this.rewards = new HashMap<>();
         loadConfig();
     }
 
+    /**
+     * Carrega a configuração do plugin
+     */
     public void loadConfig() {
+        // Salva a configuração padrão se não existir
+        if (!new File(plugin.getDataFolder(), "config.yml").exists()) {
+            plugin.saveDefaultConfig();
+        }
+
+        // Recarrega a configuração
         plugin.reloadConfig();
-        FileConfiguration config = plugin.getConfig();
+        config = plugin.getConfig();
 
-        // Load lobby location
-        String lobbyLocationStr = config.getString("lobby-location");
-        if (lobbyLocationStr != null && !lobbyLocationStr.isEmpty()) {
-            lobbyLocation = LocationUtil.stringToLocation(lobbyLocationStr);
+        // Carregar lobby location
+        if (config.isSet("lobby.world")) {
+            String worldName = config.getString("lobby.world");
+            World world = Bukkit.getWorld(worldName);
+
+            if (world != null) {
+                double x = config.getDouble("lobby.x");
+                double y = config.getDouble("lobby.y");
+                double z = config.getDouble("lobby.z");
+                float yaw = (float) config.getDouble("lobby.yaw");
+                float pitch = (float) config.getDouble("lobby.pitch");
+
+                lobbyLocation = new Location(world, x, y, z, yaw, pitch);
+                plugin.getLogger().info("Lobby location loaded: " + worldName + ", " + x + ", " + y + ", " + z);
+            } else {
+                plugin.getLogger().warning("Could not find world: " + worldName + " for lobby location!");
+                lobbyLocation = null;
+            }
+        } else {
+            plugin.getLogger().info("No lobby location set in config!");
+            lobbyLocation = null;
         }
 
-        // Load game settings
-        minPlayers = config.getInt("game-settings.min-players", 2);
-        maxPlayers = config.getInt("game-settings.max-players", 8);
-        gameStartDelay = config.getInt("game-settings.start-countdown", 30);
-        gameDuration = config.getInt("game-settings.duration", 300);
+        // Carregar configurações do jogo
+        startCountdown = config.getInt("game.start-countdown", 30);
+        gameTime = config.getInt("game.max-time", 600); // 10 minutos por padrão
+        maxPlayers = config.getInt("game.max-players", 16); // 16 jogadores por padrão
 
-        // Load messages
-        ConfigurationSection messagesSection = config.getConfigurationSection("messages");
-        if (messagesSection != null) {
-            for (String key : messagesSection.getKeys(false)) {
-                messages.put(key, messagesSection.getString(key, ""));
+        // Carregar outras configurações
+        loadArenaConfig();
+    }
+
+    /**
+     * Carrega a configuração das arenas
+     */
+    private void loadArenaConfig() {
+        File arenaFile = new File(plugin.getDataFolder(), "arenas.yml");
+
+        if (!arenaFile.exists()) {
+            try {
+                arenaFile.createNewFile();
+            } catch (IOException e) {
+                plugin.getLogger().severe("Could not create arenas.yml file!");
+                e.printStackTrace();
             }
         }
 
-        // Load rewards
-        ConfigurationSection rewardsSection = config.getConfigurationSection("rewards");
-        if (rewardsSection != null) {
-            for (String key : rewardsSection.getKeys(false)) {
-                rewards.put(key, rewardsSection.getInt(key, 0));
-            }
-        }
-
-        // Create default values if not exist
-        if (messages.isEmpty()) {
-            createDefaultMessages();
-        }
-
-        if (rewards.isEmpty()) {
-            createDefaultRewards();
-        }
-
-        saveConfig();
+        configFile = arenaFile;
     }
 
-    public void saveConfig() {
-        FileConfiguration config = plugin.getConfig();
-
-        // Save lobby location
-        if (lobbyLocation != null) {
-            config.set("lobby-location", LocationUtil.locationToString(lobbyLocation));
+    /**
+     * Obtém a configuração das arenas
+     *
+     * @return Configuração das arenas
+     */
+    public FileConfiguration getArenaConfig() {
+        if (configFile == null) {
+            loadArenaConfig();
         }
 
-        // Save game settings
-        config.set("game-settings.min-players", minPlayers);
-        config.set("game-settings.max-players", maxPlayers);
-        config.set("game-settings.start-countdown", gameStartDelay);
-        config.set("game-settings.duration", gameDuration);
-
-        // Save messages
-        ConfigurationSection messagesSection = config.createSection("messages");
-        for (Map.Entry<String, String> entry : messages.entrySet()) {
-            messagesSection.set(entry.getKey(), entry.getValue());
-        }
-
-        // Save rewards
-        ConfigurationSection rewardsSection = config.createSection("rewards");
-        for (Map.Entry<String, Integer> entry : rewards.entrySet()) {
-            rewardsSection.set(entry.getKey(), entry.getValue());
-        }
-
-        plugin.saveConfig();
+        return YamlConfiguration.loadConfiguration(configFile);
     }
 
+    /**
+     * Salva a configuração das arenas
+     */
+    public void saveArenaConfig() {
+        if (configFile == null) {
+            loadArenaConfig();
+        }
+
+        try {
+            getArenaConfig().save(configFile);
+        } catch (IOException e) {
+            plugin.getLogger().severe("Could not save arenas.yml file!");
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Define a localização do lobby
+     *
+     * @param location Localização do lobby
+     */
     public void setLobbyLocation(Location location) {
         this.lobbyLocation = location;
-        saveConfig();
+
+        // Salvar no arquivo de configuração
+        config.set("lobby.world", location.getWorld().getName());
+        config.set("lobby.x", location.getX());
+        config.set("lobby.y", location.getY());
+        config.set("lobby.z", location.getZ());
+        config.set("lobby.yaw", location.getYaw());
+        config.set("lobby.pitch", location.getPitch());
+
+        plugin.saveConfig();
+        plugin.getLogger().info("Lobby location set to: " +
+                location.getWorld().getName() + ", " +
+                location.getX() + ", " +
+                location.getY() + ", " +
+                location.getZ());
     }
 
+    /**
+     * Obtém a localização do lobby
+     *
+     * @return Localização do lobby
+     */
     public Location getLobbyLocation() {
-        return lobbyLocation != null ? lobbyLocation.clone() : null;
+        return lobbyLocation;
     }
 
-    public String getMessage(String key) {
-        return messages.getOrDefault(key, "&cMensagem não encontrada: " + key);
+    /**
+     * Obtém o tempo de contagem regressiva para iniciar o jogo
+     *
+     * @return Tempo em segundos
+     */
+    public int getStartCountdown() {
+        return startCountdown;
     }
 
-    public int getReward(String key) {
-        return rewards.getOrDefault(key, 0);
+    /**
+     * Obtém o tempo máximo de jogo
+     *
+     * @return Tempo em segundos
+     */
+    public int getGameTime() {
+        return gameTime;
     }
 
-    public int getMinPlayers() {
-        return minPlayers;
+    /**
+     * Verifica se o jogador deve ser teleportado para o lobby ao entrar no servidor
+     *
+     * @return true se deve teleportar, false caso contrário
+     */
+    public boolean shouldTeleportToLobbyOnJoin() {
+        return config.getBoolean("settings.teleport-to-lobby-on-join", true);
     }
 
+    /**
+     * Obtém o número máximo de jogadores permitido por arena
+     *
+     * @return Número máximo de jogadores
+     */
     public int getMaxPlayers() {
         return maxPlayers;
     }
 
-    public int getGameStartDelay() {
-        return gameStartDelay;
-    }
-
-    public int getGameDuration() {
-        return gameDuration;
-    }
-
-    private void createDefaultMessages() {
-        messages.put("prefix", "&8[&6GB&8] &r");
-        messages.put("player-joined", "%prefix% &e%player% &ajuntou-se ao jogo! &7(%current%/%max%)");
-        messages.put("player-left", "%prefix% &e%player% &csaiu do jogo. &7(%current%/%max%)");
-        messages.put("game-starting", "%prefix% &aO jogo começará em &e%time% &asegundos!");
-        messages.put("countdown-cancelled", "%prefix% &cContagem regressiva cancelada. Aguardando mais jogadores...");
-        messages.put("game-started", "%prefix% &a&lO jogo começou! Boa sorte!");
-        messages.put("player-killed", "%prefix% &e%player% &7foi eliminado por &e%killer%&7!");
-        messages.put("player-died", "%prefix% &e%player% &7foi eliminado!");
-        messages.put("game-ended", "%prefix% &a&lFim de jogo! &e%winner% &avenceu!");
-        messages.put("game-ended-no-winner", "%prefix% &a&lFim de jogo! &cNão houve vencedor!");
-        messages.put("spectate-join", "%prefix% &7Você agora está assistindo à partida. Use /leave para sair.");
-    }
-
-    private void createDefaultRewards() {
-        rewards.put("win", 100);
-        rewards.put("kill", 25);
-        rewards.put("participation", 10);
+    /**
+     * Define o número máximo de jogadores permitido por arena
+     *
+     * @param maxPlayers Número máximo de jogadores
+     */
+    public void setMaxPlayers(int maxPlayers) {
+        this.maxPlayers = maxPlayers;
+        config.set("game.max-players", maxPlayers);
+        plugin.saveConfig();
     }
 }

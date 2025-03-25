@@ -19,21 +19,20 @@ public class SetLobbyCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            MessageUtil.sendMessage(sender, "&cEste comando só pode ser usado por jogadores.");
+            MessageUtil.sendMessage(sender, "&cOnly players can use this command!");
             return true;
         }
 
         Player player = (Player) sender;
 
-        if (!player.hasPermission("gravitationalbattle.admin")) {
-            MessageUtil.sendMessage(player, "&cVocê não tem permissão para usar este comando.");
+        if (!player.hasPermission("gravitationalbattle.admin.setlobby")) {
+            MessageUtil.sendMessage(player, "&cYou don't have permission to use this command!");
             return true;
         }
 
-        // Set lobby location to the player's current location
         plugin.getConfigManager().setLobbyLocation(player.getLocation());
+        MessageUtil.sendMessage(player, "&aLobby location has been set to your current position!");
 
-        MessageUtil.sendMessage(player, "&aLobby definido com sucesso na sua localização atual!");
         return true;
     }
 }

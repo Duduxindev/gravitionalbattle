@@ -19,19 +19,30 @@ public class LeaveCommand implements CommandExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            MessageUtil.sendMessage(sender, "&cEste comando só pode ser usado por jogadores.");
+            MessageUtil.sendMessage(sender, "&cOnly players can use this command!");
             return true;
         }
 
         Player player = (Player) sender;
 
-        boolean left = plugin.getGameManager().leaveGame(player);
-        if (!left) {
-            // Error message is sent by the GameManager
+        if (!player.hasPermission("gravitationalbattle.leave")) {
+            MessageUtil.sendMessage(player, "&cYou don't have permission to use this command!");
             return true;
         }
 
-        // Success message handled by the Game class when removing player
+        if (!plugin.getGameManager().isPlayerInGame(player)) {
+            MessageUtil.sendMessage(player, "&cYou are not in a game!");
+            return true;
+        }
+
+        boolean left = plugin.getGameManager().leaveGame(player);
+
+        if (left) {
+            MessageUtil.sendMessage(player, "&aYou have left the game.");
+        } else {
+            MessageUtil.sendMessage(player, "&cCouldn't leave the game for some reason.");
+        }
+
         return true;
     }
 }

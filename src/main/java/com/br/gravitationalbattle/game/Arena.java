@@ -2,241 +2,190 @@ package com.br.gravitationalbattle.game;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 
-/**
- * Represents a battle arena
- */
 public class Arena {
-
-    private static final Random RANDOM = new Random();
-
     private String name;
-    private String displayName; // Campo adicionado
-    private Location lobbyLocation;
+    private String displayName;
+    private UUID worldUUID;
+    private GameState state;
     private List<Location> spawnPoints;
-    private int minPlayers;
-    private int maxPlayers;
-    private int countdownTime;
     private boolean enabled;
-    private UUID worldUUID; // Campo adicionado para compatibilidade
+    private int maxPlayers;
+    private int minPlayers;
+    private Location lobbyLocation;
 
-    /**
-     * Creates a new arena
-     * @param name The arena name
-     * @param lobbyLocation The lobby location
-     */
-    public Arena(String name, Location lobbyLocation) {
+    public Arena(String name, String displayName, UUID worldUUID) {
         this.name = name;
-        this.displayName = name; // Por padrão, displayName é igual ao name
-        this.lobbyLocation = lobbyLocation;
-        this.spawnPoints = new ArrayList<>();
-        this.minPlayers = 2;
-        this.maxPlayers = 16;
-        this.countdownTime = 60;
-        this.enabled = true;
-        this.worldUUID = lobbyLocation.getWorld().getUID();
-
-        // Add lobby as default spawn point
-        this.spawnPoints.add(lobbyLocation);
-    }
-
-    /**
-     * Gets the arena name
-     * @return The arena name
-     */
-    public String getName() {
-        return name;
-    }
-
-    /**
-     * Gets the display name
-     * @return The display name
-     */
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    /**
-     * Sets the display name
-     * @param displayName The display name
-     */
-    public void setDisplayName(String displayName) {
         this.displayName = displayName;
+        this.worldUUID = worldUUID;
+        this.state = GameState.AVAILABLE;
+        this.spawnPoints = new ArrayList<>();
+        this.enabled = true;
+        this.maxPlayers = 16; // Default value
+        this.minPlayers = 2;  // Default value
+
+        // Default lobby location is the spawn of the arena world
+        World world = Bukkit.getWorld(worldUUID);
+        if (world != null) {
+            this.lobbyLocation = world.getSpawnLocation();
+        }
     }
 
     /**
-     * Gets the lobby location
-     * @return The lobby location
+     * Gets the lobby location for this arena
+     *
+     * @return Lobby location or null if not set
      */
     public Location getLobbyLocation() {
-        return lobbyLocation;
+        return lobbyLocation != null ? lobbyLocation.clone() : null;
     }
 
     /**
-     * Sets the lobby location
-     * @param lobbyLocation The lobby location
+     * Sets the lobby location for this arena
+     *
+     * @param location Lobby location
      */
-    public void setLobbyLocation(Location lobbyLocation) {
-        this.lobbyLocation = lobbyLocation;
+    public void setLobbyLocation(Location location) {
+        this.lobbyLocation = location.clone();
     }
 
     /**
-     * Adds a spawn point
-     * @param location The spawn point location
+     * Checks if the arena is enabled
+     *
+     * @return true if the arena is enabled
      */
-    public void addSpawnPoint(Location location) {
-        spawnPoints.add(location);
+    public boolean isEnabled() {
+        return enabled && state == GameState.AVAILABLE;
     }
 
     /**
-     * Gets all spawn points
-     * @return List of spawn points
-     */
-    public List<Location> getSpawnPoints() {
-        return spawnPoints;
-    }
-
-    /**
-     * Removes a spawn point
-     * @param index The spawn point index
-     * @return true if removed, false if index was out of bounds
-     */
-    public boolean removeSpawnPoint(int index) {
-        if (index < 0 || index >= spawnPoints.size()) {
-            return false;
-        }
-
-        spawnPoints.remove(index);
-        return true;
-    }
-
-    /**
-     * Gets a random spawn point
-     * @return A random spawn point, or the lobby location if no spawn points exist
-     */
-    public Location getRandomSpawnPoint() {
-        if (spawnPoints.isEmpty()) {
-            return lobbyLocation;
-        }
-
-        return spawnPoints.get(RANDOM.nextInt(spawnPoints.size()));
-    }
-
-    /**
-     * Gets the minimum players required
-     * @return The minimum players
-     */
-    public int getMinPlayers() {
-        return minPlayers;
-    }
-
-    /**
-     * Sets the minimum players required
-     * @param minPlayers The minimum players
-     */
-    public void setMinPlayers(int minPlayers) {
-        this.minPlayers = Math.max(2, minPlayers);
-    }
-
-    /**
-     * Gets the maximum players allowed
-     * @return The maximum players
+     * Gets the maximum number of players allowed in this arena
+     *
+     * @return Maximum player count
      */
     public int getMaxPlayers() {
         return maxPlayers;
     }
 
     /**
-     * Sets the maximum players allowed
-     * @param maxPlayers The maximum players
+     * Sets the maximum number of players for this arena
+     *
+     * @param maxPlayers Maximum player count
      */
     public void setMaxPlayers(int maxPlayers) {
-        this.maxPlayers = Math.max(this.minPlayers, maxPlayers);
+        this.maxPlayers = maxPlayers;
     }
 
     /**
-     * Gets the countdown time in seconds
-     * @return The countdown time
+     * Gets the minimum number of players required to start a game
+     *
+     * @return Minimum player count
      */
-    public int getCountdownTime() {
-        return countdownTime;
+    public int getMinPlayers() {
+        return minPlayers;
     }
 
     /**
-     * Sets the countdown time in seconds
-     * @param countdownTime The countdown time
+     * Sets the minimum number of players required to start a game
+     *
+     * @param minPlayers Minimum player count
      */
-    public void setCountdownTime(int countdownTime) {
-        this.countdownTime = Math.max(10, countdownTime);
-    }
-
-    /**
-     * Checks if the arena is enabled
-     * @return true if the arena is enabled
-     */
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    /**
-     * Alias para isEnabled() para compatibilidade com outras partes do código
-     * @return true if the arena is available
-     */
-    public boolean isAvailable() {
-        return enabled;
+    public void setMinPlayers(int minPlayers) {
+        this.minPlayers = minPlayers;
     }
 
     /**
      * Sets whether the arena is enabled
-     * @param enabled true to enable, false to disable
+     *
+     * @param enabled Whether arena is enabled
      */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
 
     /**
-     * Checks if the arena has enough spawn points for the maximum number of players
-     * @return true if there are enough spawn points
+     * Gets the name of this arena
+     *
+     * @return Arena name
      */
-    public boolean hasEnoughSpawnPoints() {
-        return spawnPoints.size() >= maxPlayers;
+    public String getName() {
+        return name;
     }
 
     /**
-     * Gets the number of spawn points
-     * @return The number of spawn points
+     * Gets the display name of this arena
+     *
+     * @return Display name
      */
-    public int getSpawnPointCount() {
-        return spawnPoints.size();
+    public String getDisplayName() {
+        return displayName;
     }
 
     /**
-     * Gets the world UUID
-     * @return The world UUID
+     * Gets the UUID of the world for this arena
+     *
+     * @return World UUID
      */
     public UUID getWorldUUID() {
         return worldUUID;
     }
 
     /**
-     * Sets the state of the arena (compatibilidade com código existente)
-     * @param state O estado da arena (GameState.AVAILABLE ou GameState.MAINTENANCE)
+     * Gets the current state of this arena
+     *
+     * @return Arena state
      */
-    public void setState(com.br.gravitationalbattle.game.GameState state) {
-        this.enabled = (state == com.br.gravitationalbattle.game.GameState.AVAILABLE);
+    public GameState getState() {
+        return state;
     }
 
     /**
-     * Gets the state of the arena (compatibilidade com código existente)
-     * @return O estado da arena
+     * Sets the state of this arena
+     *
+     * @param state New state
      */
-    public com.br.gravitationalbattle.game.GameState getState() {
-        return this.enabled ?
-                com.br.gravitationalbattle.game.GameState.AVAILABLE :
-                com.br.gravitationalbattle.game.GameState.MAINTENANCE;
+    public void setState(GameState state) {
+        this.state = state;
+    }
+
+    /**
+     * Checks if the arena is available
+     *
+     * @return true if available
+     */
+    public boolean isAvailable() {
+        return state == GameState.AVAILABLE;
+    }
+
+    /**
+     * Gets all spawn points for this arena
+     *
+     * @return List of spawn locations
+     */
+    public List<Location> getSpawnPoints() {
+        return new ArrayList<>(spawnPoints);
+    }
+
+    /**
+     * Adds a spawn point to this arena
+     *
+     * @param location Spawn location
+     */
+    public void addSpawnPoint(Location location) {
+        spawnPoints.add(location);
+    }
+
+    /**
+     * Gets the number of spawn points
+     *
+     * @return Spawn point count
+     */
+    public int getSpawnPointCount() {
+        return spawnPoints.size();
     }
 }

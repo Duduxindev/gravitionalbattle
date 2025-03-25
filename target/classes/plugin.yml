@@ -1,86 +1,51 @@
 name: GravitationalBattle
 version: 1.0.0
 main: com.br.gravitationalbattle.GravitationalBattle
-api-version: 1.16
-description: Um minigame de batalha com gravidade alterada para Bukkit/Spigot
-author: Duduxindev
-depend: [Multiverse-Core]
+author: DuduxindevAtualize ogame.java com isso
+description: Plugin de mini-game de batalha gravitacional para Minecraft
+softdepend: [Multiverse-Core]
 
 commands:
   gravitationalbattle:
-    description: Comando principal do plugin
-    aliases: [gb]
+    description: Comando principal do Gravitational Battle
+    aliases: [gb, gravitationalbattle]
     usage: /gb [help|reload]
   arena:
-    description: Gerencia as arenas do jogo
-    usage: /arena [create|delete|list|addspawn|tp|setstate]
-    permission: gravitationalbattle.admin
-  join:
-    description: Entra em uma arena
-    usage: /join [arena]
-    permission: gravitationalbattle.join
-  leave:
-    description: Sai da arena atual
-    usage: /leave
-    permission: gravitationalbattle.leave
+    description: Gerenciar arenas do Gravitational Battle
+    usage: /arena [create|delete|list|setspawn|setlobby|info]
   setlobby:
-    description: Define o lobby principal do plugin
+    description: Define o lobby do Gravitational Battle
     usage: /setlobby
-    permission: gravitationalbattle.admin.setlobby
+  join:
+    description: Entra em um jogo do Gravitational Battle
+    usage: /join [arena|random]
+  leave:
+    description: Sai do jogo atual
+    usage: /leave
   spectate:
-    description: Assiste a uma partida
+    description: Assiste um jogo em andamento
     usage: /spectate <arena|jogador>
-    permission: gravitationalbattle.spectate
   stats:
-    description: Mostra estatísticas do jogador
+    description: Mostra estatísticas de um jogador
     usage: /stats [jogador]
-    permission: gravitationalbattle.stats
-  admin:
-    description: Comandos administrativos
-    usage: /admin [forcestart|forceend|reload]
-    permission: gravitationalbattle.admin
+  abrirloja:
+    description: Abre a loja do jogo
+    usage: /abrirloja
+    aliases: [loja, shop]
 
 permissions:
   gravitationalbattle.admin:
-    description: Acesso a todos os comandos de administração
+    description: Permite acesso a comandos administrativos
     default: op
-  gravitationalbattle.admin.forcestart:
-    description: Permite iniciar jogos à força
-    default: op
-    children:
-      gravitationalbattle.admin: true
-  gravitationalbattle.admin.forceend:
-    description: Permite terminar jogos à força
-    default: op
-    children:
-      gravitationalbattle.admin: true
-  gravitationalbattle.admin.reload:
-    description: Permite recarregar configurações
-    default: op
-    children:
-      gravitationalbattle.admin: true
-  gravitationalbattle.admin.setlobby:
-    description: Permite definir o lobby principal
-    default: op
-    children:
-      gravitationalbattle.admin: true
-  gravitationalbattle.join:
-    description: Permite entrar nos jogos
-    default: true
-  gravitationalbattle.leave:
-    description: Permite sair dos jogos
+  gravitationalbattle.play:
+    description: Permite jogar o mini-game
     default: true
   gravitationalbattle.spectate:
     description: Permite assistir jogos
     default: true
   gravitationalbattle.stats:
-    description: Permite ver estatísticas
+    description: Permite ver estatísticas de outros jogadores
     default: true
-  gravitationalbattle.*:
-    description: Permite todos os comandos
-    default: op
-    children:
-      gravitationalbattle.admin: true
-      gravitationalbattle.join: true
-      gravitationalbattle.leave: true
-      gravitationalbattle.spectate: true
+  gravitationalbattle.shop:
+    description: Permite abrir a loja do jogo
+    default: true

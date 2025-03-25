@@ -1,2 +1,1 @@
-com\br\gravitationalbattle\GravitationalBattle.class
-com\br\gravitationalbattle\managers\ConfigManager.class
+com\br\gravitationalbattle\listeners\NPCListener.class

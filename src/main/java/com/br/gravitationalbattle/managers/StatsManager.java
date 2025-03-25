@@ -1,106 +1,182 @@
 package com.br.gravitationalbattle.managers;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 import com.br.gravitationalbattle.GravitationalBattle;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public class StatsManager {
+
     private final GravitationalBattle plugin;
-    private final File statsFile;
+    private File statsFile;
     private FileConfiguration statsConfig;
 
-    // Cache das estatísticas em memória para acesso rápido
-    private final Map<UUID, Integer> kills = new HashMap<>();
-    private final Map<UUID, Integer> deaths = new HashMap<>();
-    private final Map<UUID, Integer> wins = new HashMap<>();
-    private final Map<UUID, Integer> gamesPlayed = new HashMap<>();
+    private Map<UUID, Integer> playerKills;
+    private Map<UUID, Integer> playerDeaths;
+    private Map<UUID, Integer> playerWins;
+    private Map<UUID, Integer> playerGamesPlayed;
 
     public StatsManager(GravitationalBattle plugin) {
         this.plugin = plugin;
-        this.statsFile = new File(plugin.getDataFolder(), "stats.yml");
+        this.playerKills = new HashMap<>();
+        this.playerDeaths = new HashMap<>();
+        this.playerWins = new HashMap<>();
+        this.playerGamesPlayed = new HashMap<>();
+
         loadStats();
     }
 
     /**
-     * Classe para armazenar estatísticas de jogadores
+     * Adds kills to a player's statistics
+     *
+     * @param player The player
+     * @param kills Number of kills to add
      */
-    public class PlayerStats {
-        private int kills;
-        private int deaths;
-        private int wins;
-        private int gamesPlayed;
-        private double kdr;
+    public void addKills(Player player, int kills) {
+        if (player == null || kills <= 0) return;
 
-        public PlayerStats(int kills, int deaths, int wins, int gamesPlayed) {
-            this.kills = kills;
-            this.deaths = deaths;
-            this.wins = wins;
-            this.gamesPlayed = gamesPlayed;
-            this.kdr = deaths > 0 ? (double) kills / deaths : kills;
-        }
-
-        public int getKills() {
-            return kills;
-        }
-
-        public int getDeaths() {
-            return deaths;
-        }
-
-        public int getWins() {
-            return wins;
-        }
-
-        public int getGamesPlayed() {
-            return gamesPlayed;
-        }
-
-        public double getKDR() {
-            return kdr;
-        }
+        UUID uuid = player.getUniqueId();
+        int currentKills = playerKills.getOrDefault(uuid, 0);
+        playerKills.put(uuid, currentKills + kills);
     }
 
     /**
-     * Obtém todas as estatísticas de um jogador
-     * @param uuid UUID do jogador
-     * @return Objeto PlayerStats com as estatísticas
+     * Adds a kill to a player's statistics
+     *
+     * @param player The player
      */
-    public PlayerStats getPlayerStats(UUID uuid) {
-        int playerKills = getKills(uuid);
-        int playerDeaths = getDeaths(uuid);
-        int playerWins = getWins(uuid);
-        int playerGamesPlayed = getGamesPlayed(uuid);
-
-        return new PlayerStats(playerKills, playerDeaths, playerWins, playerGamesPlayed);
+    public void addKill(Player player) {
+        addKills(player, 1);
     }
 
     /**
-     * Obtém todas as estatísticas de um jogador
-     * @param player Jogador
-     * @return Objeto PlayerStats com as estatísticas
+     * Adds a death to a player's statistics
+     *
+     * @param player The player
      */
-    public PlayerStats getPlayerStats(Player player) {
-        return getPlayerStats(player.getUniqueId());
+    public void addDeath(Player player) {
+        if (player == null) return;
+
+        UUID uuid = player.getUniqueId();
+        int currentDeaths = playerDeaths.getOrDefault(uuid, 0);
+        playerDeaths.put(uuid, currentDeaths + 1);
     }
 
     /**
-     * Carrega as estatísticas do arquivo
+     * Adds a win to a player's statistics
+     *
+     * @param player The player
      */
-    private void loadStats() {
+    public void addWin(Player player) {
+        if (player == null) return;
+
+        UUID uuid = player.getUniqueId();
+        int currentWins = playerWins.getOrDefault(uuid, 0);
+        playerWins.put(uuid, currentWins + 1);
+    }
+
+    /**
+     * Adds a game played to a player's statistics
+     *
+     * @param player The player
+     */
+    public void addGamePlayed(Player player) {
+        if (player == null) return;
+
+        UUID uuid = player.getUniqueId();
+        int currentGamesPlayed = playerGamesPlayed.getOrDefault(uuid, 0);
+        playerGamesPlayed.put(uuid, currentGamesPlayed + 1);
+    }
+
+    /**
+     * Gets the number of kills for a player
+     *
+     * @param player The player
+     * @return Number of kills
+     */
+    public int getPlayerKills(Player player) {
+        if (player == null) return 0;
+
+        UUID uuid = player.getUniqueId();
+        return playerKills.getOrDefault(uuid, 0);
+    }
+
+    /**
+     * Gets the number of deaths for a player
+     *
+     * @param player The player
+     * @return Number of deaths
+     */
+    public int getPlayerDeaths(Player player) {
+        if (player == null) return 0;
+
+        UUID uuid = player.getUniqueId();
+        return playerDeaths.getOrDefault(uuid, 0);
+    }
+
+    /**
+     * Gets the number of wins for a player
+     *
+     * @param player The player
+     * @return Number of wins
+     */
+    public int getPlayerWins(Player player) {
+        if (player == null) return 0;
+
+        UUID uuid = player.getUniqueId();
+        return playerWins.getOrDefault(uuid, 0);
+    }
+
+    /**
+     * Gets the number of games played by a player
+     *
+     * @param player The player
+     * @return Number of games played
+     */
+    public int getPlayerGamesPlayed(Player player) {
+        if (player == null) return 0;
+
+        UUID uuid = player.getUniqueId();
+        return playerGamesPlayed.getOrDefault(uuid, 0);
+    }
+
+    /**
+     * Calculates K/D ratio for a player
+     *
+     * @param player The player
+     * @return K/D ratio, or kills if deaths is 0
+     */
+    public double getPlayerKDRatio(Player player) {
+        if (player == null) return 0.0;
+
+        int kills = getPlayerKills(player);
+        int deaths = getPlayerDeaths(player);
+
+        if (deaths == 0) {
+            return kills; // Avoid division by zero
+        }
+
+        return (double) kills / deaths;
+    }
+
+    /**
+     * Loads player stats from file
+     */
+    public void loadStats() {
+        statsFile = new File(plugin.getDataFolder(), "stats.yml");
+
         if (!statsFile.exists()) {
             try {
-                statsFile.getParentFile().mkdirs();
                 statsFile.createNewFile();
             } catch (IOException e) {
-                plugin.getLogger().severe("Não foi possível criar o arquivo stats.yml!");
+                plugin.getLogger().severe("Could not create stats.yml file!");
                 e.printStackTrace();
                 return;
             }
@@ -108,213 +184,58 @@ public class StatsManager {
 
         statsConfig = YamlConfiguration.loadConfiguration(statsFile);
 
-        // Carrega os dados em cache
-        for (String uuidStr : statsConfig.getKeys(false)) {
-            try {
-                UUID uuid = UUID.fromString(uuidStr);
-
-                kills.put(uuid, statsConfig.getInt(uuidStr + ".kills", 0));
-                deaths.put(uuid, statsConfig.getInt(uuidStr + ".deaths", 0));
-                wins.put(uuid, statsConfig.getInt(uuidStr + ".wins", 0));
-                gamesPlayed.put(uuid, statsConfig.getInt(uuidStr + ".gamesPlayed", 0));
-            } catch (IllegalArgumentException e) {
-                // UUID inválido, ignora
+        // Load player stats
+        if (statsConfig.contains("players")) {
+            for (String uuidString : statsConfig.getConfigurationSection("players").getKeys(false)) {
+                try {
+                    UUID uuid = UUID.fromString(uuidString);
+                    playerKills.put(uuid, statsConfig.getInt("players." + uuidString + ".kills", 0));
+                    playerDeaths.put(uuid, statsConfig.getInt("players." + uuidString + ".deaths", 0));
+                    playerWins.put(uuid, statsConfig.getInt("players." + uuidString + ".wins", 0));
+                    playerGamesPlayed.put(uuid, statsConfig.getInt("players." + uuidString + ".gamesPlayed", 0));
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Invalid UUID in stats.yml: " + uuidString);
+                }
             }
         }
     }
 
     /**
-     * Salva as estatísticas no arquivo
+     * Saves player stats to file
      */
     public void saveStats() {
-        if (statsConfig == null) return;
-
-        for (Map.Entry<UUID, Integer> entry : kills.entrySet()) {
-            statsConfig.set(entry.getKey().toString() + ".kills", entry.getValue());
+        if (statsConfig == null || statsFile == null) {
+            loadStats();
         }
 
-        for (Map.Entry<UUID, Integer> entry : deaths.entrySet()) {
-            statsConfig.set(entry.getKey().toString() + ".deaths", entry.getValue());
+        // Clear current stats in config
+        statsConfig.set("players", null);
+
+        // Save kills
+        for (Map.Entry<UUID, Integer> entry : playerKills.entrySet()) {
+            statsConfig.set("players." + entry.getKey().toString() + ".kills", entry.getValue());
         }
 
-        for (Map.Entry<UUID, Integer> entry : wins.entrySet()) {
-            statsConfig.set(entry.getKey().toString() + ".wins", entry.getValue());
+        // Save deaths
+        for (Map.Entry<UUID, Integer> entry : playerDeaths.entrySet()) {
+            statsConfig.set("players." + entry.getKey().toString() + ".deaths", entry.getValue());
         }
 
-        for (Map.Entry<UUID, Integer> entry : gamesPlayed.entrySet()) {
-            statsConfig.set(entry.getKey().toString() + ".gamesPlayed", entry.getValue());
+        // Save wins
+        for (Map.Entry<UUID, Integer> entry : playerWins.entrySet()) {
+            statsConfig.set("players." + entry.getKey().toString() + ".wins", entry.getValue());
+        }
+
+        // Save games played
+        for (Map.Entry<UUID, Integer> entry : playerGamesPlayed.entrySet()) {
+            statsConfig.set("players." + entry.getKey().toString() + ".gamesPlayed", entry.getValue());
         }
 
         try {
             statsConfig.save(statsFile);
         } catch (IOException e) {
-            plugin.getLogger().severe("Não foi possível salvar o arquivo stats.yml!");
+            plugin.getLogger().severe("Could not save stats to stats.yml!");
             e.printStackTrace();
         }
-    }
-
-    /**
-     * Obtém o número de mortes de um jogador
-     * @param uuid UUID do jogador
-     * @return Número de mortes
-     */
-    public int getDeaths(UUID uuid) {
-        return deaths.getOrDefault(uuid, 0);
-    }
-
-    /**
-     * Obtém o número de mortes de um jogador
-     * @param player Jogador
-     * @return Número de mortes
-     */
-    public int getDeaths(Player player) {
-        return getDeaths(player.getUniqueId());
-    }
-
-    /**
-     * Obtém o número de abates de um jogador
-     * @param uuid UUID do jogador
-     * @return Número de abates
-     */
-    public int getKills(UUID uuid) {
-        return kills.getOrDefault(uuid, 0);
-    }
-
-    /**
-     * Obtém o número de abates de um jogador
-     * @param player Jogador
-     * @return Número de abates
-     */
-    public int getKills(Player player) {
-        return getKills(player.getUniqueId());
-    }
-
-    /**
-     * Obtém o número de vitórias de um jogador
-     * @param uuid UUID do jogador
-     * @return Número de vitórias
-     */
-    public int getWins(UUID uuid) {
-        return wins.getOrDefault(uuid, 0);
-    }
-
-    /**
-     * Obtém o número de vitórias de um jogador
-     * @param player Jogador
-     * @return Número de vitórias
-     */
-    public int getWins(Player player) {
-        return getWins(player.getUniqueId());
-    }
-
-    /**
-     * Obtém o número de jogos jogados por um jogador
-     * @param uuid UUID do jogador
-     * @return Número de jogos jogados
-     */
-    public int getGamesPlayed(UUID uuid) {
-        return gamesPlayed.getOrDefault(uuid, 0);
-    }
-
-    /**
-     * Obtém o número de jogos jogados por um jogador
-     * @param player Jogador
-     * @return Número de jogos jogados
-     */
-    public int getGamesPlayed(Player player) {
-        return getGamesPlayed(player.getUniqueId());
-    }
-
-    /**
-     * Adiciona uma morte ao jogador
-     * @param uuid UUID do jogador
-     */
-    public void addDeath(UUID uuid) {
-        int current = getDeaths(uuid);
-        deaths.put(uuid, current + 1);
-    }
-
-    /**
-     * Adiciona um abate ao jogador
-     * @param uuid UUID do jogador
-     */
-    public void addKill(UUID uuid) {
-        int current = getKills(uuid);
-        kills.put(uuid, current + 1);
-    }
-
-    /**
-     * Adiciona uma vitória ao jogador
-     * @param uuid UUID do jogador
-     */
-    public void addWin(UUID uuid) {
-        int current = getWins(uuid);
-        wins.put(uuid, current + 1);
-    }
-
-    /**
-     * Adiciona um jogo jogado ao jogador
-     * @param uuid UUID do jogador
-     */
-    public void addGamePlayed(UUID uuid) {
-        int current = getGamesPlayed(uuid);
-        gamesPlayed.put(uuid, current + 1);
-    }
-
-    /**
-     * Adiciona uma morte ao jogador
-     * @param player Jogador
-     */
-    public void addDeath(Player player) {
-        addDeath(player.getUniqueId());
-    }
-
-    /**
-     * Adiciona um abate ao jogador
-     * @param player Jogador
-     */
-    public void addKill(Player player) {
-        addKill(player.getUniqueId());
-    }
-
-    /**
-     * Adiciona uma vitória ao jogador
-     * @param player Jogador
-     */
-    public void addWin(Player player) {
-        addWin(player.getUniqueId());
-    }
-
-    /**
-     * Adiciona um jogo jogado ao jogador
-     * @param player Jogador
-     */
-    public void addGamePlayed(Player player) {
-        addGamePlayed(player.getUniqueId());
-    }
-
-    /**
-     * Obtém a taxa de KDR (Kill/Death Ratio) de um jogador
-     * @param uuid UUID do jogador
-     * @return Taxa KDR
-     */
-    public double getKDR(UUID uuid) {
-        int playerKills = getKills(uuid);
-        int playerDeaths = getDeaths(uuid);
-
-        if (playerDeaths == 0) {
-            return playerKills;
-        }
-
-        return (double) playerKills / playerDeaths;
-    }
-
-    /**
-     * Obtém a taxa de KDR (Kill/Death Ratio) de um jogador
-     * @param player Jogador
-     * @return Taxa KDR
-     */
-    public double getKDR(Player player) {
-        return getKDR(player.getUniqueId());
     }
 }

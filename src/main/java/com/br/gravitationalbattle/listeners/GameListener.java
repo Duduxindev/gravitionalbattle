@@ -1,30 +1,26 @@
 package com.br.gravitationalbattle.listeners;
 
-import org.bukkit.Material;
-import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.FoodLevelChangeEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
-import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.weather.WeatherChangeEvent;
-import org.bukkit.projectiles.ProjectileSource;
 
 import com.br.gravitationalbattle.GravitationalBattle;
 import com.br.gravitationalbattle.game.Game;
-import com.br.gravitationalbattle.game.GameState;
+import com.br.gravitationalbattle.utils.MessageUtil;
 
+/**
+ * Listener for game-related events
+ */
 public class GameListener implements Listener {
 
     private final GravitationalBattle plugin;
@@ -34,250 +30,145 @@ public class GameListener implements Listener {
     }
 
     @EventHandler
-    public void onPlayerInteract(PlayerInteractEvent event) {
-        try {
-            // Sempre verificar se o player não é nulo
-            if (event.getPlayer() == null) {
-                return;
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        Player player = event.getEntity();
+        Game game = plugin.getGameManager().getPlayerGame(player);
+
+        if (game != null) {
+            // Cancel death message
+            event.setDeathMessage(null);
+
+            // Mark player as dead in the game
+            game.playerDied(player);
+
+            // Update killer's stats if applicable
+            Player killer = player.getKiller();
+            if (killer != null) {
+                plugin.getStatsManager().addKill(killer);
+                game.recordKill(killer);
             }
 
-            Player player = event.getPlayer();
+            // Update death stats
+            plugin.getStatsManager().addDeath(player);
+        }
+    }
 
-            // Verificar se o jogador está em um jogo
-            Game game = plugin.getArenaManager().getPlayerGame(player.getUniqueId());
-            if (game == null) {
-                return; // O jogador não está em um jogo
+    @EventHandler
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player)) return;
+
+        Player player = (Player) event.getEntity();
+        Game game = plugin.getGameManager().getPlayerGame(player);
+
+        if (game != null) {
+            // Only allow damage if game is in progress
+            if (game.getState() != com.br.gravitationalbattle.game.GameState.INGAME) {
+                event.setCancelled(true);
             }
+        }
+    }
 
-            // Se o jogo não estiver em andamento, cancela interações com blocos
-            if (game.getState() != GameState.INGAME) {
-                if (event.getAction() == Action.RIGHT_CLICK_BLOCK ||
-                        event.getAction() == Action.LEFT_CLICK_BLOCK) {
-                    event.setCancelled(true);
-                    return;
-                }
+    @EventHandler
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof Player)) return;
+
+        // Handle NPC damage
+        if (event.getEntity().hasMetadata("NPC")) {
+            event.setCancelled(true);
+            return;
+        }
+
+        // Handle player damage
+        if (event.getDamager() instanceof Player && event.getEntity() instanceof Player) {
+            Player damager = (Player) event.getDamager();
+            Player target = (Player) event.getEntity();
+
+            Game damagerGame = plugin.getGameManager().getPlayerGame(damager);
+            Game targetGame = plugin.getGameManager().getPlayerGame(target);
+
+            // If both in same game and game is in progress, allow PVP
+            if (damagerGame != null && damagerGame == targetGame &&
+                    damagerGame.getState() == com.br.gravitationalbattle.game.GameState.INGAME) {
+                // Allow damage - PvP is enabled
+            } else {
+                // Cancel damage
+                event.setCancelled(true);
             }
-
-            // Verificação de segurança para o bloco e material
-            if (event.getClickedBlock() != null) {
-                Block block = event.getClickedBlock();
-
-                // Impedir interações com determinados blocos durante o jogo
-                if (block.getType() == Material.CHEST ||
-                        block.getType() == Material.TRAPPED_CHEST ||
-                        block.getType() == Material.ENDER_CHEST ||
-                        block.getType() == Material.FURNACE ||
-                        block.getType() == Material.LEGACY_BURNING_FURNACE ||
-                        block.getType() == Material.BREWING_STAND ||
-                        block.getType() == Material.ANVIL ||
-                        block.getType() == Material.ENCHANTING_TABLE ||
-                        block.getType() == Material.LEGACY_WORKBENCH) {
-
-                    // Permitir apenas se o jogo estiver em andamento
-                    if (game.getState() != GameState.INGAME) {
-                        event.setCancelled(true);
-                        return;
-                    }
-                }
-
-                // Impedir interações com portas, botões, etc. se não estiver em jogo
-                if (game.getState() != GameState.INGAME) {
-                    if (block.getType().name().contains("DOOR") ||
-                            block.getType().name().contains("BUTTON") ||
-                            block.getType().name().contains("LEVER") ||
-                            block.getType().name().contains("PLATE")) {
-
-                        event.setCancelled(true);
-                        return;
-                    }
-                }
-            }
-        } catch (Exception e) {
-            // Log da exceção para facilitar depuração
-            plugin.getLogger().severe("Erro no evento PlayerInteractEvent: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
-        Game game = plugin.getArenaManager().getPlayerGame(player.getUniqueId());
-
-        if (game != null) {
-            // Impede quebrar blocos fora do modo de jogo
-            if (game.getState() != GameState.INGAME) {
-                event.setCancelled(true);
-                return;
-            }
-
-            // Você pode adicionar lógica específica para permitir quebrar apenas certos blocos
-            // durante o jogo se necessário
+        if (plugin.getGameManager().isPlayerInGame(player)) {
+            // Prevent block breaking in games
+            event.setCancelled(true);
         }
     }
 
     @EventHandler
     public void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
-        Game game = plugin.getArenaManager().getPlayerGame(player.getUniqueId());
-
-        if (game != null) {
-            // Impede colocar blocos fora do modo de jogo
-            if (game.getState() != GameState.INGAME) {
-                event.setCancelled(true);
-                return;
-            }
-
-            // Você pode adicionar lógica específica para permitir colocar apenas certos blocos
-            // durante o jogo se necessário
-        }
-    }
-
-    @EventHandler
-    public void onPlayerDeath(PlayerDeathEvent event) {
-        Player player = event.getEntity();
-        Game game = plugin.getArenaManager().getPlayerGame(player.getUniqueId());
-
-        if (game != null) {
-            // Remove mensagem padrão de morte
-            event.setDeathMessage(null);
-
-            // Remove drops do jogador
-            event.getDrops().clear();
-
-            // Remove experiência
-            event.setDroppedExp(0);
-
-            // Processa a morte do jogador no jogo
-            Player killer = player.getKiller();
-            game.playerKilled(player, killer);
-
-            // Incrementa a estatística de morte do jogador
-            plugin.getStatsManager().incrementDeaths(player.getUniqueId());
-        }
-    }
-
-    @EventHandler
-    public void onEntityDamage(EntityDamageEvent event) {
-        if (!(event.getEntity() instanceof Player)) {
-            return;
-        }
-
-        Player player = (Player) event.getEntity();
-        Game game = plugin.getArenaManager().getPlayerGame(player.getUniqueId());
-
-        if (game != null) {
-            // Impede dano fora do modo de jogo
-            if (game.getState() != GameState.INGAME) {
-                event.setCancelled(true);
-                return;
-            }
-
-            // Lógica específica para tipos de dano durante o jogo
-            // Por exemplo, você pode permitir apenas certos tipos de dano
-        }
-    }
-
-    @EventHandler
-    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player)) {
-            return;
-        }
-
-        Player player = (Player) event.getEntity();
-        Game game = plugin.getArenaManager().getPlayerGame(player.getUniqueId());
-
-        if (game == null) {
-            return;
-        }
-
-        // Impede dano por entidade fora do modo de jogo
-        if (game.getState() != GameState.INGAME) {
+        if (plugin.getGameManager().isPlayerInGame(player)) {
+            // Prevent block placing in games
             event.setCancelled(true);
-            return;
-        }
-
-        // Verifica se o dano foi causado por outro jogador ou projétil
-        Player damager = null;
-
-        if (event.getDamager() instanceof Player) {
-            damager = (Player) event.getDamager();
-        } else if (event.getDamager() instanceof Projectile) {
-            Projectile projectile = (Projectile) event.getDamager();
-            ProjectileSource source = projectile.getShooter();
-
-            if (source instanceof Player) {
-                damager = (Player) source;
-            }
-        }
-
-        // Se o causador do dano for um jogador, verifica se está no mesmo jogo
-        if (damager != null) {
-            Game damagerGame = plugin.getArenaManager().getPlayerGame(damager.getUniqueId());
-
-            if (damagerGame != game) {
-                event.setCancelled(true);
-                return;
-            }
-
-            // Verifica se o jogador é um espectador
-            if (game.getSpectators().contains(damager.getUniqueId())) {
-                event.setCancelled(true);
-                return;
-            }
-        }
-    }
-
-    @EventHandler
-    public void onPlayerDropItem(PlayerDropItemEvent event) {
-        Player player = event.getPlayer();
-        Game game = plugin.getArenaManager().getPlayerGame(player.getUniqueId());
-
-        if (game != null) {
-            // Configura se jogadores podem ou não dropar itens durante o jogo
-            // Neste exemplo, impede sempre o drop de itens
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler
-    public void onFoodLevelChange(FoodLevelChangeEvent event) {
-        if (!(event.getEntity() instanceof Player)) {
-            return;
-        }
-
-        Player player = (Player) event.getEntity();
-        Game game = plugin.getArenaManager().getPlayerGame(player.getUniqueId());
-
-        if (game != null) {
-            // Impede mudanças no nível de fome fora do modo de jogo
-            if (game.getState() != GameState.INGAME) {
-                event.setCancelled(true);
-                event.setFoodLevel(20); // Mantém a fome no máximo
-                return;
-            }
-
-            // Você pode configurar regras específicas para fome durante o jogo aqui
         }
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        Game game = plugin.getArenaManager().getPlayerGame(player.getUniqueId());
+
+        // Remove player from any game they're in
+        if (plugin.getGameManager().isPlayerInGame(player)) {
+            plugin.getGameManager().leaveGame(player);
+        }
+
+        // Clean up scoreboard
+        plugin.getScoreboardManager().removePlayer(player);
+    }
+
+    @EventHandler
+    public void onPlayerMove(PlayerMoveEvent event) {
+        Player player = event.getPlayer();
+        Game game = plugin.getGameManager().getPlayerGame(player);
 
         if (game != null) {
-            // Remove o jogador do jogo quando ele desconecta
-            game.removePlayer(player);
+            // Check if player fell out of the world
+            if (event.getTo().getY() < 0) {
+                player.damage(1000.0); // Kill player
+                MessageUtil.broadcastMessage("&c" + player.getName() + " &7fell out of the world!");
+            }
+
+            // Only restrict movement in waiting/starting states
+            if ((game.getState() == com.br.gravitationalbattle.game.GameState.WAITING ||
+                    game.getState() == com.br.gravitationalbattle.game.GameState.STARTING) &&
+                    (event.getFrom().getBlockX() != event.getTo().getBlockX() ||
+                            event.getFrom().getBlockZ() != event.getTo().getBlockZ())) {
+
+                // Cancel horizontal movement in pre-game
+                event.setTo(event.getFrom());
+            }
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
-    public void onWeatherChange(WeatherChangeEvent event) {
-        // Impede mudanças climáticas em mundos de arena
-        if (plugin.getGameManager().isArenaWorld(event.getWorld().getName())) {
-            if (event.toWeatherState()) { // Se estiver mudando para chuvoso
-                event.setCancelled(true);
+    @EventHandler(priority = EventPriority.NORMAL)
+    public void onPlayerChat(AsyncPlayerChatEvent event) {
+        Player player = event.getPlayer();
+        Game game = plugin.getGameManager().getPlayerGame(player);
+
+        if (game != null) {
+            // Cancel the regular chat event
+            event.setCancelled(true);
+
+            try {
+                // Use game-specific chat
+                plugin.getGameManager().sendGameChatMessage(game, player, event.getMessage());
+            } catch (Exception e) {
+                plugin.getLogger().severe("Error processing game chat: " + e.getMessage());
+                e.printStackTrace();
+                // Send a message to the player that their chat message failed
+                MessageUtil.sendMessage(player, "&cError sending chat message. Please try again!");
             }
         }
     }

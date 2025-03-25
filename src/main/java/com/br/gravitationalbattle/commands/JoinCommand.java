@@ -1,100 +1,90 @@
 package com.br.gravitationalbattle.commands;
 
-import org.bukkit.ChatColor;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import com.br.gravitationalbattle.GravitationalBattle;
-import com.br.gravitationalbattle.managers.GameManager;
+import com.br.gravitationalbattle.utils.MessageUtil;
 
-public class JoinCommand implements CommandExecutor {
+public class JoinCommand implements CommandExecutor, TabCompleter {
 
-    private GravitationalBattle plugin;
-    private GameManager gameManager;
+    private final GravitationalBattle plugin;
 
-    /**
-     * Creates a new join command
-     * @param plugin The plugin instance
-     */
     public JoinCommand(GravitationalBattle plugin) {
         this.plugin = plugin;
-        this.gameManager = plugin.getGameManager();
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage(ChatColor.RED + "Apenas jogadores podem usar este comando!");
+            MessageUtil.sendMessage(sender, "&cOnly players can use this command!");
             return true;
         }
 
         Player player = (Player) sender;
 
-        // Check if player has permission
-        if (!player.hasPermission("gravitationalbattle.join")) {
-            player.sendMessage(ChatColor.RED + "Você não tem permissão para usar este comando!");
-            return true;
-        }
-
-        // Handle command without arguments - list available arenas
         if (args.length == 0) {
-            listAvailableArenas(player);
+            MessageUtil.sendMessage(player, "&cUsage: /join <arena> or /join random");
             return true;
         }
 
-        String arenaName = args[0].toLowerCase();
+        String arenaName = args[0];
 
-        // Check if player is already in a game
-        if (gameManager.isPlayerInGame(player)) {
-            player.sendMessage(ChatColor.RED + "Você já está em um jogo! Use /leave para sair do jogo atual.");
-            return true;
+        // Check for "random" parameter
+        if (arenaName.equalsIgnoreCase("random")) {
+            return plugin.getPlayerCommands().joinRandomGame(sender);
         }
 
         // Check if arena exists
-        if (!gameManager.arenaExists(arenaName)) {
-            player.sendMessage(ChatColor.RED + "A arena '" + arenaName + "' não existe!");
-            listAvailableArenas(player);
+        if (!plugin.getGameManager().arenaExists(arenaName)) {
+            MessageUtil.sendMessage(player, "&cArena '" + arenaName + "' does not exist!");
             return true;
         }
 
-        // Try to join the game
-        if (gameManager.joinGame(player, arenaName)) {
-            // Success - message handled by Game class
-        } else {
-            player.sendMessage(ChatColor.RED + "Não foi possível entrar na arena '" + arenaName + "'! Ela pode estar cheia ou em andamento.");
+        // Try to join the arena
+        boolean joined = plugin.getGameManager().joinGame(player, arenaName);
+
+        if (!joined) {
+            MessageUtil.sendMessage(player, "&cFailed to join arena '" + arenaName + "'. It may be full or in progress.");
         }
 
         return true;
     }
 
-    /**
-     * Lists all available arenas to a player
-     * @param player The player to send the list to
-     */
-    private void listAvailableArenas(Player player) {
-        player.sendMessage(ChatColor.GOLD + "========= Arenas Disponíveis =========");
-        player.sendMessage(ChatColor.YELLOW + "Uso: " + ChatColor.WHITE + "/join <arena>");
-        player.sendMessage("");
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
+        List<String> completions = new ArrayList<>();
 
-        for (String arena : gameManager.getAvailableArenas()) {
-            int players = gameManager.getPlayersInArena(arena);
-            int maxPlayers = gameManager.getMaxPlayersInArena(arena);
-            String state = gameManager.getArenaState(arena);
+        if (args.length == 1) {
+            // Add "random" option
+            completions.add("random");
 
-            if (state.equals("WAITING") || state.equals("STARTING")) {
-                player.sendMessage(ChatColor.GREEN + arena + ChatColor.WHITE +
-                        " - Jogadores: " + ChatColor.YELLOW + players + "/" + maxPlayers +
-                        ChatColor.WHITE + " - Status: " +
-                        (state.equals("WAITING") ? ChatColor.GREEN + "Aguardando" : ChatColor.GOLD + "Iniciando"));
-            } else {
-                player.sendMessage(ChatColor.RED + arena + ChatColor.WHITE +
-                        " - Jogadores: " + ChatColor.YELLOW + players + "/" + maxPlayers +
-                        ChatColor.WHITE + " - Status: " + ChatColor.RED + "Em Andamento");
+            // Add available arenas
+            completions.addAll(plugin.getGameManager().getAvailableArenas());
+
+            // Filter by current input
+            return filterCompletions(completions, args[0]);
+        }
+
+        return completions;
+    }
+
+    private List<String> filterCompletions(List<String> completions, String input) {
+        if (input.isEmpty()) return completions;
+
+        List<String> filtered = new ArrayList<>();
+        for (String completion : completions) {
+            if (completion.toLowerCase().startsWith(input.toLowerCase())) {
+                filtered.add(completion);
             }
         }
 
-        player.sendMessage(ChatColor.GOLD + "==================================");
+        return filtered;
     }
 }
