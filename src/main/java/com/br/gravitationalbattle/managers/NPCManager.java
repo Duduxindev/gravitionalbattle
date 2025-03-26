@@ -5,182 +5,110 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Location;
-import org.bukkit.entity.Entity;
+import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.metadata.MetadataValue;
 
 import com.br.gravitationalbattle.GravitationalBattle;
 import com.br.gravitationalbattle.utils.MessageUtil;
 
+/**
+ * Gerencia NPCs no plugin
+ */
 public class NPCManager {
 
     private final GravitationalBattle plugin;
-    private Map<String, Entity> npcs;
-    private Map<String, Location> npcLocations;
+    private final Map<String, ArmorStand> npcs;
 
     public NPCManager(GravitationalBattle plugin) {
         this.plugin = plugin;
         this.npcs = new HashMap<>();
-        this.npcLocations = new HashMap<>();
+
+        // Carregar NPCs
         loadNPCs();
     }
 
     /**
-     * Loads all NPCs from configuration
+     * Carrega os NPCs do arquivo de configuração
      */
-    public void loadNPCs() {
-        // Implementation will depend on your NPC system
-        plugin.getLogger().info("Loading NPCs...");
+    private void loadNPCs() {
+        // Implementar carregamento de NPCs do arquivo de configuração
     }
 
     /**
-     * Creates a new NPC at the player's location
-     *
-     * @param player The player executing the command
-     * @param name Name of the NPC
-     * @param skinName Optional skin name for the NPC
-     * @return true if successful
+     * Salva os NPCs no arquivo de configuração
      */
-    public boolean createNPC(Player player, String name, String skinName) {
-        Location location = player.getLocation();
+    public void saveNPCs() {
+        // Implementar salvamento de NPCs no arquivo de configuração
+    }
 
-        // Store NPC location for respawning if needed
-        npcLocations.put(name, location);
-
-        // This is a simple implementation - in reality, you'd use a library like Citizens
-        try {
-            // Create NPC entity
-            Entity npc = location.getWorld().spawnEntity(location, org.bukkit.entity.EntityType.PLAYER);
-            npc.setCustomName(MessageUtil.colorize("&e" + name));
-            npc.setCustomNameVisible(true);
-
-            // Mark as NPC to avoid damage, etc.
-            npc.setMetadata("NPC", new FixedMetadataValue(plugin, true));
-            npc.setMetadata("NPC_ID", new FixedMetadataValue(plugin, name));
-
-            // Save NPC
-            npcs.put(name, npc);
-
-            // Save to config
-            saveNPCToConfig(name, location, skinName);
-
-            return true;
-        } catch (Exception e) {
-            plugin.getLogger().severe("Error creating NPC: " + e.getMessage());
-            e.printStackTrace();
+    /**
+     * Cria um NPC no local especificado
+     *
+     * @param name Nome do NPC
+     * @param location Local onde o NPC será criado
+     * @return true se o NPC foi criado com sucesso
+     */
+    public boolean createNPC(String name, Location location) {
+        if (name == null || location == null) {
             return false;
         }
+
+        // Verificar se já existe um NPC com esse nome
+        if (npcs.containsKey(name.toLowerCase())) {
+            return false;
+        }
+
+        // Criar ArmorStand para representar o NPC
+        ArmorStand npc = (ArmorStand) location.getWorld().spawnEntity(location, EntityType.ARMOR_STAND);
+        npc.setCustomName(MessageUtil.colorize("&6&l" + name));
+        npc.setCustomNameVisible(true);
+        npc.setVisible(true);
+        npc.setGravity(false);
+        npc.setSmall(false);
+        npc.setBasePlate(false);
+        npc.setArms(true);
+
+        // Salvar NPC no mapa
+        npcs.put(name.toLowerCase(), npc);
+
+        // Salvar NPCs
+        saveNPCs();
+
+        return true;
     }
 
     /**
-     * Gets the ID of an NPC entity
+     * Remove um NPC
      *
-     * @param entity The entity to check
-     * @return The NPC ID or null if not an NPC
-     */
-    public String getNPCId(Entity entity) {
-        if (entity == null || !entity.hasMetadata("NPC_ID")) {
-            return null;
-        }
-
-        for (MetadataValue value : entity.getMetadata("NPC_ID")) {
-            if (value.getOwningPlugin() == plugin) {
-                return value.asString();
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Removes an NPC by name
-     *
-     * @param name Name of the NPC
-     * @return true if successful
+     * @param name Nome do NPC
+     * @return true se o NPC foi removido com sucesso
      */
     public boolean removeNPC(String name) {
-        Entity npc = npcs.get(name);
-        if (npc != null && !npc.isDead()) {
+        if (name == null) {
+            return false;
+        }
+
+        ArmorStand npc = npcs.remove(name.toLowerCase());
+        if (npc != null) {
             npc.remove();
-            npcs.remove(name);
-            npcLocations.remove(name);
-            removeNPCFromConfig(name);
+            saveNPCs();
             return true;
         }
+
         return false;
     }
 
     /**
-     * Teleports an NPC to a new location
+     * Verifica se um NPC existe
      *
-     * @param name Name of the NPC
-     * @param location New location
-     * @return true if successful
+     * @param name Nome do NPC
+     * @return true se o NPC existir
      */
-    public boolean teleportNPC(String name, Location location) {
-        Entity npc = npcs.get(name);
-        if (npc != null && !npc.isDead()) {
-            npc.teleport(location);
-            npcLocations.put(name, location);
-            updateNPCLocationInConfig(name, location);
-            return true;
+    public boolean npcExists(String name) {
+        if (name == null) {
+            return false;
         }
-        return false;
-    }
-
-    /**
-     * Gets an NPC by name
-     *
-     * @param name Name of the NPC
-     * @return The NPC entity, or null if not found
-     */
-    public Entity getNPC(String name) {
-        return npcs.get(name);
-    }
-
-    /**
-     * Gets all NPCs
-     *
-     * @return Map of NPC names to entities
-     */
-    public Map<String, Entity> getAllNPCs() {
-        return new HashMap<>(npcs);
-    }
-
-    /**
-     * Checks if a entity is an NPC
-     *
-     * @param entity The entity to check
-     * @return true if entity is an NPC
-     */
-    public boolean isNPC(Entity entity) {
-        return entity != null && entity.hasMetadata("NPC");
-    }
-
-    /**
-     * Respawns all NPCs (useful after server restart)
-     */
-    public void respawnAllNPCs() {
-        for (String name : npcLocations.keySet()) {
-            Location location = npcLocations.get(name);
-            if (location != null) {
-                // Logic to respawn NPC
-            }
-        }
-    }
-
-    // Private helper methods
-
-    private void saveNPCToConfig(String name, Location location, String skinName) {
-        // Implementation will depend on your configuration system
-    }
-
-    private void removeNPCFromConfig(String name) {
-        // Implementation will depend on your configuration system
-    }
-
-    private void updateNPCLocationInConfig(String name, Location location) {
-        // Implementation will depend on your configuration system
+        return npcs.containsKey(name.toLowerCase());
     }
 }

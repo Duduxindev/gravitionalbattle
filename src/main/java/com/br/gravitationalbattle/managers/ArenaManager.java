@@ -20,6 +20,7 @@ import com.br.gravitationalbattle.GravitationalBattle;
 import com.br.gravitationalbattle.game.Arena;
 import com.br.gravitationalbattle.game.Game;
 import com.br.gravitationalbattle.game.GameMode;
+import com.br.gravitationalbattle.game.GameState;
 import com.br.gravitationalbattle.utils.MessageUtil;
 
 /**
@@ -107,6 +108,16 @@ public class ArenaManager {
                 arena.setMinPlayers(minPlayers);
                 arena.setMaxPlayers(maxPlayers);
 
+                // Definir estado padrão
+                String stateStr = arenaSection.getString("state", "AVAILABLE");
+                try {
+                    GameState state = GameState.valueOf(stateStr);
+                    arena.setState(state);
+                } catch (IllegalArgumentException e) {
+                    plugin.getLogger().warning("Estado inválido para arena " + name + ": " + stateStr);
+                    arena.setState(GameState.AVAILABLE);
+                }
+
                 // Carregar modo de jogo padrão
                 String gameModeName = arenaSection.getString("game-mode", "SOLO");
                 try {
@@ -185,6 +196,7 @@ public class ArenaManager {
             arenaSection.set("min-players", arena.getMinPlayers());
             arenaSection.set("max-players", arena.getMaxPlayers());
             arenaSection.set("game-mode", arena.getDefaultGameMode().name());
+            arenaSection.set("state", arena.getState().name());
 
             // Salvar localização do lobby
             Location lobbyLoc = arena.getLobbyLocation();
@@ -243,6 +255,44 @@ public class ArenaManager {
      * Cria uma nova arena
      *
      * @param name Nome da arena
+     * @param displayName Nome de exibição da arena
+     * @param player Jogador que está criando a arena
+     * @return true se a arena foi criada com sucesso
+     */
+    public boolean createArena(String name, String displayName, Player player) {
+        if (name == null || player == null) {
+            return false;
+        }
+
+        // Verificar se já existe uma arena com esse nome
+        if (arenaExists(name)) {
+            MessageUtil.sendMessage(player, "&cJá existe uma arena com o nome '" + name + "'.");
+            return false;
+        }
+
+        // Pegar o UUID do mundo atual do jogador
+        UUID worldUUID = player.getWorld().getUID();
+
+        // Criar arena
+        Arena arena = createArena(name, worldUUID);
+        if (arena == null) {
+            MessageUtil.sendMessage(player, "&cNão foi possível criar a arena. Verifique os logs.");
+            return false;
+        }
+
+        // Definir nome de exibição
+        arena.setDisplayName(displayName);
+
+        // Salvar arenas
+        saveArenas();
+
+        return true;
+    }
+
+    /**
+     * Cria uma nova arena
+     *
+     * @param name Nome da arena
      * @param worldUUID UUID do mundo da arena
      * @return A arena criada ou null se houver falha
      */
@@ -276,6 +326,76 @@ public class ArenaManager {
     }
 
     /**
+     * Exclui uma arena
+     *
+     * @param name Nome da arena
+     * @param player Jogador que está removendo a arena
+     * @return true se a arena foi excluída com sucesso
+     */
+    public boolean deleteArena(String name, Player player) {
+        if (name == null || player == null) {
+            return false;
+        }
+
+        // Verificar se a arena existe
+        if (!arenaExists(name)) {
+            MessageUtil.sendMessage(player, "&cNão existe uma arena com o nome '" + name + "'.");
+            return false;
+        }
+
+        // Verificar se a arena está em uso
+        if (isArenaInUse(name)) {
+            MessageUtil.sendMessage(player, "&cEsta arena está em uso. Aguarde o término do jogo.");
+            return false;
+        }
+
+        // Remover arena da lista
+        Arena removed = arenas.remove(name.toLowerCase());
+
+        // Salvar arenas
+        if (removed != null) {
+            saveArenas();
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Adiciona um ponto de spawn à arena
+     *
+     * @param name Nome da arena
+     * @param player Jogador que está adicionando o spawn
+     * @return true se o spawn foi adicionado com sucesso
+     */
+    public boolean addSpawnPoint(String name, Player player) {
+        if (name == null || player == null) {
+            return false;
+        }
+
+        // Verificar se a arena existe
+        Arena arena = getArena(name);
+        if (arena == null) {
+            MessageUtil.sendMessage(player, "&cNão existe uma arena com o nome '" + name + "'.");
+            return false;
+        }
+
+        // Verificar se o jogador está no mundo da arena
+        if (!player.getWorld().getUID().equals(arena.getWorldUUID())) {
+            MessageUtil.sendMessage(player, "&cVocê precisa estar no mundo da arena para adicionar um ponto de spawn.");
+            return false;
+        }
+
+        // Adicionar ponto de spawn
+        arena.addSpawnPoint(player.getLocation());
+        saveArenas();
+
+        // Enviar mensagem de sucesso
+        MessageUtil.sendMessage(player, "&aPonto de spawn adicionado com sucesso! Total: " + arena.getSpawnPointCount());
+        return true;
+    }
+
+    /**
      * Obtém uma arena pelo nome
      *
      * @param name Nome da arena
@@ -306,34 +426,6 @@ public class ArenaManager {
         }
 
         return null;
-    }
-
-    /**
-     * Exclui uma arena
-     *
-     * @param name Nome da arena
-     * @return true se a arena foi excluída com sucesso
-     */
-    public boolean deleteArena(String name) {
-        if (name == null) {
-            return false;
-        }
-
-        // Verificar se a arena está em uso
-        if (isArenaInUse(name)) {
-            return false;
-        }
-
-        // Remover arena da lista
-        Arena removed = arenas.remove(name.toLowerCase());
-
-        // Salvar arenas
-        if (removed != null) {
-            saveArenas();
-            return true;
-        }
-
-        return false;
     }
 
     /**
@@ -475,7 +567,7 @@ public class ArenaManager {
         List<Arena> availableArenas = new ArrayList<>();
 
         for (Arena arena : arenas.values()) {
-            if (!isArenaInUse(arena.getName())) {
+            if (!isArenaInUse(arena.getName()) && arena.getState() == GameState.AVAILABLE) {
                 availableArenas.add(arena);
             }
         }
@@ -523,6 +615,13 @@ public class ArenaManager {
         // Verificar se a arena existe
         if (!arenaExists(arenaName)) {
             MessageUtil.sendMessage(player, "&cA arena &e" + arenaName + " &cnão existe!");
+            return false;
+        }
+
+        // Verificar se a arena está disponível
+        Arena arena = getArena(arenaName);
+        if (arena.getState() != GameState.AVAILABLE) {
+            MessageUtil.sendMessage(player, "&cEsta arena não está disponível no momento.");
             return false;
         }
 

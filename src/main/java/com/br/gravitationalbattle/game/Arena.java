@@ -4,188 +4,219 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
 
+/**
+ * Representa uma arena do jogo
+ */
 public class Arena {
+
     private String name;
     private String displayName;
     private UUID worldUUID;
-    private GameState state;
     private List<Location> spawnPoints;
-    private boolean enabled;
-    private int maxPlayers;
-    private int minPlayers;
     private Location lobbyLocation;
+    private int minPlayers = 2;
+    private int maxPlayers = 16;
+    private GameMode defaultGameMode;
+    private GameState state;
 
-    public Arena(String name, String displayName, UUID worldUUID) {
+    /**
+     * Cria uma nova arena
+     *
+     * @param name Nome da arena
+     * @param worldUUID UUID do mundo da arena
+     */
+    public Arena(String name, UUID worldUUID) {
         this.name = name;
-        this.displayName = displayName;
+        this.displayName = name; // Por padrão, o nome de exibição é igual ao nome
         this.worldUUID = worldUUID;
-        this.state = GameState.AVAILABLE;
         this.spawnPoints = new ArrayList<>();
-        this.enabled = true;
-        this.maxPlayers = 16; // Default value
-        this.minPlayers = 2;  // Default value
-
-        // Default lobby location is the spawn of the arena world
-        World world = Bukkit.getWorld(worldUUID);
-        if (world != null) {
-            this.lobbyLocation = world.getSpawnLocation();
-        }
+        this.defaultGameMode = GameMode.SOLO; // Modo padrão
+        this.state = GameState.AVAILABLE; // Estado padrão
     }
 
     /**
-     * Gets the lobby location for this arena
+     * Obtém o nome da arena
      *
-     * @return Lobby location or null if not set
-     */
-    public Location getLobbyLocation() {
-        return lobbyLocation != null ? lobbyLocation.clone() : null;
-    }
-
-    /**
-     * Sets the lobby location for this arena
-     *
-     * @param location Lobby location
-     */
-    public void setLobbyLocation(Location location) {
-        this.lobbyLocation = location.clone();
-    }
-
-    /**
-     * Checks if the arena is enabled
-     *
-     * @return true if the arena is enabled
-     */
-    public boolean isEnabled() {
-        return enabled && state == GameState.AVAILABLE;
-    }
-
-    /**
-     * Gets the maximum number of players allowed in this arena
-     *
-     * @return Maximum player count
-     */
-    public int getMaxPlayers() {
-        return maxPlayers;
-    }
-
-    /**
-     * Sets the maximum number of players for this arena
-     *
-     * @param maxPlayers Maximum player count
-     */
-    public void setMaxPlayers(int maxPlayers) {
-        this.maxPlayers = maxPlayers;
-    }
-
-    /**
-     * Gets the minimum number of players required to start a game
-     *
-     * @return Minimum player count
-     */
-    public int getMinPlayers() {
-        return minPlayers;
-    }
-
-    /**
-     * Sets the minimum number of players required to start a game
-     *
-     * @param minPlayers Minimum player count
-     */
-    public void setMinPlayers(int minPlayers) {
-        this.minPlayers = minPlayers;
-    }
-
-    /**
-     * Sets whether the arena is enabled
-     *
-     * @param enabled Whether arena is enabled
-     */
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    /**
-     * Gets the name of this arena
-     *
-     * @return Arena name
+     * @return Nome da arena
      */
     public String getName() {
         return name;
     }
 
     /**
-     * Gets the display name of this arena
+     * Obtém o nome de exibição da arena
      *
-     * @return Display name
+     * @return Nome de exibição
      */
     public String getDisplayName() {
         return displayName;
     }
 
     /**
-     * Gets the UUID of the world for this arena
+     * Define o nome de exibição da arena
      *
-     * @return World UUID
+     * @param displayName Novo nome de exibição
+     */
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    /**
+     * Obtém o UUID do mundo desta arena
+     *
+     * @return UUID do mundo
      */
     public UUID getWorldUUID() {
         return worldUUID;
     }
 
     /**
-     * Gets the current state of this arena
+     * Adiciona um ponto de spawn à arena
      *
-     * @return Arena state
+     * @param location Localização do spawn
      */
-    public GameState getState() {
-        return state;
+    public void addSpawnPoint(Location location) {
+        if (location != null) {
+            spawnPoints.add(location.clone());
+        }
     }
 
     /**
-     * Sets the state of this arena
+     * Remove um ponto de spawn da arena
      *
-     * @param state New state
+     * @param index Índice do ponto de spawn
+     * @return true se o ponto foi removido com sucesso
      */
-    public void setState(GameState state) {
-        this.state = state;
+    public boolean removeSpawnPoint(int index) {
+        if (index >= 0 && index < spawnPoints.size()) {
+            spawnPoints.remove(index);
+            return true;
+        }
+        return false;
     }
 
     /**
-     * Checks if the arena is available
+     * Obtém todos os pontos de spawn da arena
      *
-     * @return true if available
-     */
-    public boolean isAvailable() {
-        return state == GameState.AVAILABLE;
-    }
-
-    /**
-     * Gets all spawn points for this arena
-     *
-     * @return List of spawn locations
+     * @return Lista de pontos de spawn
      */
     public List<Location> getSpawnPoints() {
         return new ArrayList<>(spawnPoints);
     }
 
     /**
-     * Adds a spawn point to this arena
+     * Obtém a quantidade de pontos de spawn na arena
      *
-     * @param location Spawn location
-     */
-    public void addSpawnPoint(Location location) {
-        spawnPoints.add(location);
-    }
-
-    /**
-     * Gets the number of spawn points
-     *
-     * @return Spawn point count
+     * @return Quantidade de spawn points
      */
     public int getSpawnPointCount() {
         return spawnPoints.size();
+    }
+
+    /**
+     * Define a localização do lobby da arena
+     *
+     * @param location Localização do lobby
+     */
+    public void setLobbyLocation(Location location) {
+        if (location != null) {
+            this.lobbyLocation = location.clone();
+        }
+    }
+
+    /**
+     * Obtém a localização do lobby da arena
+     *
+     * @return Localização do lobby
+     */
+    public Location getLobbyLocation() {
+        return lobbyLocation != null ? lobbyLocation.clone() : null;
+    }
+
+    /**
+     * Define o número mínimo de jogadores
+     *
+     * @param minPlayers Número mínimo de jogadores
+     */
+    public void setMinPlayers(int minPlayers) {
+        if (minPlayers > 0) {
+            this.minPlayers = minPlayers;
+        }
+    }
+
+    /**
+     * Define o número máximo de jogadores
+     *
+     * @param maxPlayers Número máximo de jogadores
+     */
+    public void setMaxPlayers(int maxPlayers) {
+        if (maxPlayers > 0) {
+            this.maxPlayers = maxPlayers;
+        }
+    }
+
+    /**
+     * Obtém o número mínimo de jogadores
+     *
+     * @return Número mínimo de jogadores
+     */
+    public int getMinPlayers() {
+        return minPlayers;
+    }
+
+    /**
+     * Obtém o número máximo de jogadores
+     *
+     * @return Número máximo de jogadores
+     */
+    public int getMaxPlayers() {
+        return maxPlayers;
+    }
+
+    /**
+     * Define o modo de jogo padrão da arena
+     *
+     * @param gameMode Modo de jogo
+     */
+    public void setDefaultGameMode(GameMode gameMode) {
+        this.defaultGameMode = gameMode;
+    }
+
+    /**
+     * Obtém o modo de jogo padrão da arena
+     *
+     * @return Modo de jogo
+     */
+    public GameMode getDefaultGameMode() {
+        return defaultGameMode;
+    }
+
+    /**
+     * Define o estado atual da arena
+     *
+     * @param state Novo estado
+     */
+    public void setState(GameState state) {
+        this.state = state;
+    }
+
+    /**
+     * Obtém o estado atual da arena
+     *
+     * @return Estado da arena
+     */
+    public GameState getState() {
+        return state;
+    }
+
+    /**
+     * Verifica se a arena está disponível para jogo
+     *
+     * @return true se a arena estiver disponível
+     */
+    public boolean isAvailable() {
+        return state == GameState.AVAILABLE;
     }
 }
